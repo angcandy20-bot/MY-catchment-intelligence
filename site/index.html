@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Malaysia Catchment Intelligence Dashboard</title>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="vendor/geoman/leaflet-geoman.css">
+<link rel="stylesheet" href="css/app.css?v=__BUILD__">
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="vendor/geoman/leaflet-geoman.js"></script>
+</head>
+<body>
+<div id="app">
+ <aside id="side">
+  <header>
+   <h1>Malaysia Catchment Intelligence</h1>
+   <div class="sub">Retail &amp; coffee store location planning · population (GHS-POP) · relative wealth (Meta RWI) · driving isochrones (HeiGIT)</div>
+   <div class="statuses" aria-live="polite">
+    <div><span class="lbl">Basemap</span><span id="stBase" class="st">Loading OpenStreetMap…</span></div>
+    <div><span class="lbl">API</span><span id="stApi" class="st">No API key entered (manual polygons still work)</span></div>
+    <div><span class="lbl">Aggregation</span><span id="stAgg" class="st">Loading population &amp; RWI data…</span></div>
+   </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+   <button data-tab="catchment" class="on">Catchment</button>
+   <button data-tab="iso">Isochrones</button>
+   <button data-tab="saved">Saved &amp; compare</button>
+   <button data-tab="batch">Batch stores</button>
+   <button data-tab="method">Data &amp; method</button>
+  </nav>
+
+  <div class="scroll">
+   <!-- API setup (shown on Isochrones and Batch tabs) -->
+   <section id="apiPanel" class="card api" hidden>
+    <h3>HeiGIT API setup</h3>
+    <p>To generate driving isochrones, create a HeiGIT account at <a href="https://account.heigit.org" target="_blank" rel="noopener">https://account.heigit.org</a>, obtain an API key with access to the Isochrones service, and paste it below.</p>
+    <p><a class="btn link" href="https://account.heigit.org" target="_blank" rel="noopener">Create / Get an API Key ↗</a></p>
+    <label class="fld">API key
+     <input id="apiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste your HeiGIT API key">
+    </label>
+    <div class="row"><button id="apiClear" class="small">Clear key</button><span id="apiKeyState" class="muted">Not entered</span></div>
+    <p class="muted">In the HeiGIT dashboard, check that the key has <b>Isochrones</b> access and how much quota remains. The key is kept in this page's memory only: it is not saved, logged or exported, and it is sent only to api.heigit.org. Reloading the page forgets it.</p>
+   </section>
+
+   <!-- CATCHMENT -->
+   <section data-pane="catchment">
+    <div class="card">
+     <h3>Find a location</h3>
+     <div class="row"><input id="coordIn" type="text" placeholder="latitude, longitude  e.g. 3.1579, 101.7116"><button id="coordGo">Go</button></div>
+     <div id="coordMsg" class="muted">Or click the map to pick a point. The point is used for isochrones.</div>
+    </div>
+    <div class="card">
+     <h3>Catchment polygon</h3>
+     <p class="muted">Draw with the polygon / rectangle tools on the map (top left). Use <b>Edit</b> to move vertices, <b>Cut</b> to make holes, <b>Delete</b> to remove parts. Several shapes form one MultiPolygon catchment.</p>
+     <div class="row">
+      <label class="btn small">Import GeoJSON<input id="gjFile" type="file" accept=".geojson,.json,application/geo+json" hidden></label>
+      <button id="clearWork" class="small">Clear polygon</button>
+     </div>
+     <div id="importMsg" class="muted"></div>
+    </div>
+    <div class="card">
+     <h3>Selected polygon statistics</h3>
+     <div id="workStats" class="stats"><div class="muted">No polygon selected.</div></div>
+     <div class="row"><input id="workName" type="text" placeholder="Catchment name"><button id="saveWork" class="primary">Save catchment</button></div>
+    </div>
+   </section>
+
+   <!-- ISOCHRONES -->
+   <section data-pane="iso" hidden>
+    <div class="card">
+     <h3>Driving isochrones (1–10 minutes)</h3>
+     <div id="isoPoint" class="muted">Pick a store point on the Catchment tab or click the map.</div>
+     <fieldset class="dir">
+      <legend>Direction</legend>
+      <label><input type="radio" name="dir" value="to" checked> Driving <b>TO</b> the store (arrival) — default</label>
+      <label><input type="radio" name="dir" value="from"> Driving <b>FROM</b> the store (departure)</label>
+     </fieldset>
+     <div class="row"><button id="isoGo" class="primary">Generate isochrones</button><span id="isoDirLbl" class="pill"></span></div>
+     <p class="muted">One request returns all ten contours. These are modelled driving times on the road network, without real-time traffic.</p>
+    </div>
+    <div class="card" id="isoResult" hidden>
+     <h3>Contours</h3>
+     <div class="minbar" id="minBar"></div>
+     <div class="tablewrap"><table id="isoTable"></table></div>
+     <div class="row">
+      <button id="isoSaveSel" class="small">Save selected minute as catchment</button>
+      <button id="isoSaveAll" class="small">Save all 10</button>
+      <button id="isoCsv" class="small">CSV</button><button id="isoGeo" class="small">GeoJSON</button><button id="isoKml" class="small">KML</button>
+     </div>
+    </div>
+   </section>
+
+   <!-- SAVED -->
+   <section data-pane="saved" hidden>
+    <div class="card">
+     <h3>Saved catchments</h3>
+     <p class="muted">Saved in this browser. Tick catchments to compare or export.</p>
+     <div id="savedList"></div>
+     <div class="row">
+      <button id="cmpCsv" class="small">Export CSV</button><button id="cmpGeo" class="small">Export GeoJSON</button><button id="cmpKml" class="small">Export KML</button>
+      <button id="cmpRecalc" class="small">Recalculate ticked</button>
+     </div>
+    </div>
+    <div class="card"><h3>Comparison</h3><div class="tablewrap"><table id="cmpTable"></table></div></div>
+   </section>
+
+   <!-- BATCH -->
+   <section data-pane="batch" hidden>
+    <div class="card">
+     <h3>Batch store analysis</h3>
+     <p class="muted">Columns: <code>name, latitude, longitude</code> (CSV, or paste from Excel). Each store gets one API request returning ten cumulative driving-time contours; output has N × 10 rows.</p>
+     <textarea id="batchIn" rows="5" placeholder="name,latitude,longitude&#10;KLCC,3.1579,101.7116"></textarea>
+     <div class="row">
+      <label class="btn small">Load CSV file<input id="batchFile" type="file" accept=".csv,.txt,.tsv" hidden></label>
+      <span class="pill" id="batchDirLbl"></span>
+     </div>
+     <div id="batchParse" class="muted"></div>
+     <div class="row">
+      <button id="batchStart" class="primary">Start</button>
+      <button id="batchStop">Stop</button>
+      <button id="batchResume">Resume saved job</button>
+      <button id="batchDiscard" class="small">Discard saved job</button>
+     </div>
+     <div class="progress"><div id="batchBar"></div></div>
+     <div id="batchStatus" class="muted">No batch job.</div>
+    </div>
+    <div class="card">
+     <h3>Results</h3>
+     <div class="row">
+      <button id="batchCopy" class="small">Copy table for Excel</button>
+      <button id="batchCsv" class="small">CSV</button><button id="batchGeo" class="small">GeoJSON boundaries</button><button id="batchKml" class="small">KML boundaries</button>
+      <button id="batchShow" class="small">Show boundaries on map</button>
+     </div>
+     <div class="tablewrap tall"><table id="batchTable"></table></div>
+    </div>
+   </section>
+
+   <!-- METHOD -->
+   <section data-pane="method" hidden>
+    <div class="card">
+     <h3>Settings</h3>
+     <label class="fld">Maximum RWI matching distance (km)
+      <input id="maxDist" type="number" min="0.1" max="50" step="0.1" value="3">
+     </label>
+     <p class="muted">Default 3 km. This threshold is an <b>application assumption</b>, not an official dataset standard. Changing it recalculates the current statistics; saved catchments keep the threshold they were calculated with until recalculated.</p>
+     <label><input type="checkbox" id="showRwi"> Show RWI sample points on the map</label>
+    </div>
+    <div class="card"><h3>Datasets</h3><div id="dataInfo" class="muted">Loading…</div></div>
+    <div class="card">
+     <h3>Methodology</h3>
+     <ul class="method">
+      <li><b>Population</b>: GHS-POP cells are kept at their original resolution. A cell counts when its <b>centre</b> falls inside the polygon (holes excluded, MultiPolygon parts counted once). Values are people per cell, so they are summed; densities are never summed. NoData and zero cells are excluded.</li>
+      <li><b>Wealth matching</b>: each population cell is matched to its nearest valid RWI sample by great-circle distance in metres. Matches farther than the threshold are not used. Unmatched cells still count toward total population but not toward RWI.</li>
+      <li><b>Population-weighted RWI</b> = Σ(matched cell population × RWI) ÷ Σ(matched cell population). <b>Wealth coverage</b> = matched population ÷ total population. With no valid matches the dashboard shows “No data”, never zero.</li>
+      <li><b>Area</b> is geodesic (on the sphere); <b>population density</b> = population ÷ area (people per km²).</li>
+      <li><b>RWI</b> measures <i>relative</i> wealth within the country (an index centred near 0). It is <b>not</b> household income or spending in ringgit.</li>
+      <li>The population and RWI datasets refer to <b>different years</b> (see Datasets above).</li>
+      <li>The RWI <code>error</code> field is a per-sample uncertainty. It <b>cannot simply be summed</b> (or averaged) into a confidence interval for a region, so no regional interval is shown.</li>
+      <li><b>Driving isochrones</b> come from HeiGIT openrouteservice (driving-car, OpenStreetMap roads). They are <b>modelled</b> travel times without real-time traffic. Each minute’s contour is the cumulative area reachable within that time, so populations of different minutes must not be added together.</li>
+     </ul>
+    </div>
+    <div class="card"><h3>Build &amp; verification</h3><div id="buildInfo" class="muted">Loading…</div></div>
+   </section>
+  </div>
+ </aside>
+ <main id="map" aria-label="Map"></main>
+</div>
+<div id="toast" role="status"></div>
+<script type="module" src="js/app.js?v=__BUILD__"></script>
+</body>
+</html>

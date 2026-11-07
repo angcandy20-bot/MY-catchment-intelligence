@@ -1,0 +1,6 @@
+node_modules/
+work/
+site/data/
+site/vendor/
+site/build-report.json
+__pycache__/

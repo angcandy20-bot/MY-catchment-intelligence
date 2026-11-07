@@ -1,0 +1,8 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","properties":{"name":"KLCC 1 km box"},"geometry":{"type":"Polygon","coordinates":[[[101.7071,3.1534],[101.7161,3.1534],[101.7161,3.1624],[101.7071,3.1624],[101.7071,3.1534]]]}},
+{"type":"Feature","properties":{"name":"KL city centre with hole (KLCC park excluded)"},"geometry":{"type":"Polygon","coordinates":[[[101.690,3.140],[101.725,3.140],[101.725,3.170],[101.690,3.170],[101.690,3.140]],[[101.710,3.152],[101.710,3.158],[101.717,3.158],[101.717,3.152],[101.710,3.152]]]}},
+{"type":"Feature","properties":{"name":"MultiPolygon: George Town + Johor Bahru centre"},"geometry":{"type":"MultiPolygon","coordinates":[[[[100.320,5.405],[100.345,5.405],[100.345,5.430],[100.320,5.430],[100.320,5.405]]],[[[103.745,1.455],[103.775,1.455],[103.775,1.480],[103.745,1.480],[103.745,1.455]]]]}},
+{"type":"Feature","properties":{"name":"Putrajaya concave"},"geometry":{"type":"Polygon","coordinates":[[[101.670,2.900],[101.720,2.900],[101.720,2.960],[101.700,2.930],[101.670,2.960],[101.670,2.900]]]}},
+{"type":"Feature","properties":{"name":"Klang Valley 30 km box"},"geometry":{"type":"Polygon","coordinates":[[[101.55,3.02],[101.82,3.02],[101.82,3.29],[101.55,3.29],[101.55,3.02]]]}},
+{"type":"Feature","properties":{"name":"Strait of Malacca (sea, expect 0 / No data)"},"geometry":{"type":"Polygon","coordinates":[[[100.90,2.60],[101.00,2.60],[101.00,2.70],[100.90,2.70],[100.90,2.60]]]}}
+]}

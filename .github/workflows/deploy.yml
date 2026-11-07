@@ -1,0 +1,135 @@
+name: Build, verify and deploy dashboard
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write   # only to push test reports to the "reports" branch
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+
+      - name: Install Python dependencies
+        run: pip install numpy pandas scipy requests rasterio pyproj shapely scikit-learn matplotlib
+
+      - name: Restore downloaded HDX files
+        uses: actions/cache@v4
+        with:
+          path: work
+          key: hdx-raw-v1-${{ github.run_id }}
+          restore-keys: hdx-raw-v1-
+
+      - name: Build data from HDX (download, verify, tile)
+        run: python pipeline/build_data.py --work work --out site/data
+
+      - name: Independent raster check (Python, original raster)
+        run: |
+          POP=$(python -c "import json;print(json.load(open('work/paths.json'))['population'])")
+          RWI=$(python -c "import json;print(json.load(open('work/paths.json'))['rwi'])")
+          python pipeline/check_samples.py "$POP" "$RWI" tests/real_samples.geojson work/py_check.json
+
+      - name: Compare dashboard calculation with independent check
+        run: node tests/check_real.mjs site/data work/py_check.json work/check_real.json
+
+      - name: Unit + simulated-API tests
+        run: |
+          python tests/make_synthetic.py /tmp/synth
+          TEST_REPORT=work/unit.json node tests/unit.test.mjs /tmp/synth
+
+      - name: Vendor Leaflet + Geoman, stamp build version
+        run: |
+          npm install --no-save leaflet@1.9.4 @geoman-io/leaflet-geoman-free@2 playwright@1.48.2
+          mkdir -p site/vendor/leaflet site/vendor/geoman
+          cp -r node_modules/leaflet/dist/* site/vendor/leaflet/
+          cp node_modules/@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css site/vendor/geoman/
+          cp node_modules/@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.js site/vendor/geoman/ 2>/dev/null || cp node_modules/@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.min.js site/vendor/geoman/leaflet-geoman.js
+          V=$(echo "$GITHUB_SHA" | cut -c1-8)
+          sed -i "s/__BUILD__/$V/g" site/index.html
+          find site/js -name '*.js' -exec sed -i -E "s#(from '\.{1,2}/[^']+\.js)'#\1?v=$V'#g" {} +
+          echo "BUILD=$V" >> "$GITHUB_ENV"
+          touch site/.nojekyll
+
+      - name: Browser end-to-end tests (local server)
+        env:
+          HEIGIT_API_KEY: ${{ secrets.HEIGIT_API_KEY }}
+        run: |
+          npx playwright install --with-deps chromium
+          python -m http.server 8080 --directory site > /dev/null 2>&1 &
+          sleep 2
+          node tests/e2e.mjs http://localhost:8080/ local work/e2e_local.json work/py_check.json
+
+      - name: Write build report into the site
+        if: always()
+        run: node tests/make_report.mjs site/build-report.json work/unit.json work/check_real.json work/e2e_local.json
+
+      - name: Push reports branch (for review)
+        if: always()
+        run: |
+          mkdir -p /tmp/rep && cp site/build-report.json /tmp/rep/ 2>/dev/null || true
+          cp work/*.json /tmp/rep/ 2>/dev/null || true
+          cp site/data/data_report.json site/data/manifest.json /tmp/rep/ 2>/dev/null || true
+          rm -f /tmp/rep/paths.json
+          cd /tmp/rep && git init -q && git checkout -q -b reports
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com add . && git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "build reports $GITHUB_SHA"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" reports
+
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: site }
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  verify-live:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Live site checks (deployed HTTPS URL)
+        env:
+          HEIGIT_API_KEY: ${{ secrets.HEIGIT_API_KEY }}
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: |
+          npm install --no-save playwright@1.48.2
+          npx playwright install --with-deps chromium
+          sleep 20
+          git fetch -q origin reports && git show origin/reports:py_check.json > /tmp/py_check.json || true
+          node tests/e2e.mjs "$PAGE_URL" live /tmp/e2e_live.json /tmp/py_check.json
+      - name: Push live report
+        if: always()
+        run: |
+          git fetch -q origin reports && git checkout -q -B reports origin/reports
+          cp /tmp/e2e_live.json . 2>/dev/null || echo '[]' > e2e_live.json
+          echo "{\"page_url\":\"${{ needs.deploy.outputs.page_url }}\",\"sha\":\"$GITHUB_SHA\"}" > live.json
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com add e2e_live.json live.json
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "live report $GITHUB_SHA" || true
+          git push -q origin reports
