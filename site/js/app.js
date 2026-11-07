@@ -179,7 +179,7 @@ function setWorkGeometry(geometry, name, source) {
   try { map.fitBounds(workGroup.getBounds().pad(0.2)); } catch (e) { /* empty */ }
   recalcWork();
 }
-$('clearWork').onclick = () => { workGroup.clearLayers(); recalcWork(); };
+$('clearWork').onclick = () => clearPolygon();
 $('gjFile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   const r = importGeoJSON(await f.text());
@@ -544,6 +544,41 @@ $('maxDist').onchange = async () => {
   if (iso && dataReady) { const maxD = maxDistM(); iso.stats = await aggregateMany(iso.contours.map(c => c.geometry), 'Isochrones 1–10 min', maxD); iso.maxDistM = maxD; renderIso(); }
 };
 
+// ------------------------------------------------------------------ clear controls (on the map)
+function stopDrawingModes() {
+  const pm = map.pm;
+  for (const fn of ['disableDraw', 'disableGlobalEditMode', 'disableGlobalDragMode', 'disableGlobalRemovalMode', 'disableGlobalCutMode', 'disableGlobalRotateMode']) {
+    try { if (typeof pm[fn] === 'function') pm[fn](); } catch (e) { /* mode not active */ }
+  }
+}
+function clearPolygon(quiet) {
+  stopDrawingModes();
+  const had = workGroup.getLayers().length;
+  workGroup.clearLayers(); workStats = null; $('workName').value = ''; $('importMsg').textContent = '';
+  $('workStats').innerHTML = statsHTML(null);
+  if (!quiet) toast(had ? 'Polygon cleared' : 'No polygon to clear');
+}
+function clearMap() {
+  clearPolygon(true);
+  iso = null; renderIso(); isoGroup.clearLayers();
+  batchGroup.clearLayers();
+  if (pointMarker) { map.removeLayer(pointMarker); pointMarker = null; }
+  point = null; $('coordIn').value = '';
+  $('isoPoint').textContent = 'Pick a store point on the Catchment tab or click the map.';
+  toast('Map cleared. Saved catchments and batch results are kept.');
+}
+const clearCtl = L.control({ position: 'topleft' });
+clearCtl.onAdd = () => {
+  const d = L.DomUtil.create('div', 'leaflet-bar mapclear');
+  d.innerHTML = '<a href="#" id="mcPoly" role="button" title="Delete the drawn or imported catchment polygon">✕ Clear polygon</a>' +
+    '<a href="#" id="mcAll" role="button" title="Remove all polygons, isochrones, walking areas, batch boundaries and the store pin (saved catchments are kept)">⟲ Clear map</a>';
+  L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
+  d.querySelector('#mcPoly').onclick = e => { e.preventDefault(); clearPolygon(); };
+  d.querySelector('#mcAll').onclick = e => { e.preventDefault(); clearMap(); };
+  return d;
+};
+clearCtl.addTo(map);
+
 // ------------------------------------------------------------------ boot
 (async function boot() {
   updateDirLabels();
@@ -553,4 +588,4 @@ $('maxDist').onchange = async () => {
 })();
 
 // test hook (no secrets exposed)
-window.__mci = { BUILD, endpoint: HEIGIT_ISOCHRONES_ENDPOINT, walkEndpoint: HEIGIT_WALK_ENDPOINT, aggregateMany, setWorkGeometry, getState: () => ({ dataReady, iso, job, workStats }), hasKey: () => !!apiKey };
+window.__mci = { BUILD, endpoint: HEIGIT_ISOCHRONES_ENDPOINT, walkEndpoint: HEIGIT_WALK_ENDPOINT, aggregateMany, setWorkGeometry, getState: () => ({ dataReady, iso, job, workStats, point, workParts: workGroup.getLayers().length, isoLayers: isoGroup.getLayers().length, batchLayers: batchGroup.getLayers().length }), hasKey: () => !!apiKey };

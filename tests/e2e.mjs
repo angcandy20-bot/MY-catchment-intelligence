@@ -101,6 +101,26 @@ await test('real', 'save, rename, reopen and compare catchments', async () => {
   await page.click('[data-tab=catchment]'); return 'KML export contains innerBoundaryIs';
 });
 
+await test('real', 'map buttons: "Clear polygon" removes the polygon; "Clear map" removes polygon, pin and overlays', async () => {
+  await page.click('[data-tab=catchment]');
+  await page.evaluate(() => window.__mci.setWorkGeometry({ type: 'Polygon', coordinates: [[[101.70, 3.15], [101.72, 3.15], [101.72, 3.17], [101.70, 3.17], [101.70, 3.15]]] }, 'to clear', 'drawn'));
+  await page.waitForFunction(() => window.__mci.getState().workParts > 0);
+  assert(await page.isVisible('#mcPoly') && await page.isVisible('#mcAll'), 'buttons not visible on map');
+  await page.click('#mcPoly');
+  let st = await page.evaluate(() => window.__mci.getState());
+  assert(st.workParts === 0 && st.workStats === null, 'polygon not cleared');
+  assert((await page.textContent('#workStats')).includes('No polygon'), 'stats panel not reset');
+  await page.evaluate(() => window.__mci.setWorkGeometry({ type: 'Polygon', coordinates: [[[101.70, 3.15], [101.72, 3.15], [101.72, 3.17], [101.70, 3.17], [101.70, 3.15]]] }, 'again', 'drawn'));
+  await page.fill('#coordIn', '3.1579, 101.7116'); await page.click('#coordGo');
+  const savedBefore = await page.locator('[data-rename]').count();
+  await page.click('#mcAll');
+  st = await page.evaluate(() => window.__mci.getState());
+  assert(st.workParts === 0 && st.point === null && st.iso === null && st.isoLayers === 0 && st.batchLayers === 0, 'map not cleared: ' + JSON.stringify({ w: st.workParts, p: st.point, i: st.isoLayers }));
+  assert(await page.locator('.leaflet-marker-icon').count() === 0, 'pin still on map');
+  assert(await page.locator('[data-rename]').count() === savedBefore, 'saved catchments were affected');
+  return 'polygon cleared; map cleared (pin, overlays); saved catchments kept';
+});
+
 // ---- Real HeiGIT endpoint probe without a valid key (connectivity, CORS, error classification)
 await test('real', 'HeiGIT endpoint reachable from the browser; invalid key gives a clear message', async () => {
   const r = await page.evaluate(async (u) => {

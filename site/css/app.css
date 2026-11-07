@@ -61,3 +61,6 @@ ul.method{padding-left:18px;margin:4px 0}ul.method li{margin:4px 0}
 .legend{background:#fff;padding:6px 8px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.25);font-size:11px;line-height:1.5}
 .legend i{display:inline-block;width:12px;height:10px;margin-right:5px;vertical-align:-1px;border-radius:2px}
 @media (max-width:860px){#app{grid-template-columns:1fr;grid-template-rows:50vh 50vh}#map{height:50vh;order:-1}}
+.mapclear a{width:auto!important;height:auto!important;padding:5px 10px;line-height:18px!important;font-size:12px;font-weight:600;white-space:nowrap;text-align:left;color:#b42318!important}
+.mapclear a+a{color:#1c2230!important}
+.mapclear a:hover{background:#fef3f2}
