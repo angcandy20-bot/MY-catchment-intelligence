@@ -112,6 +112,32 @@ await test('real', 'HeiGIT endpoint reachable from the browser; invalid key give
   return `HTTP ${r.status}: ${r.body.replace(/\s+/g, ' ')} → shown to users as the "${r.status === 401 ? 'invalid key' : 'refused key / no Isochrones access'}" message`;
 });
 
+await test('real', 'HeiGIT foot-walking endpoint reachable from the browser; invalid key gives a clear message', async () => {
+  const r = await page.evaluate(async (u) => {
+    try { const res = await fetch(u, { method: 'POST', headers: { Authorization: 'invalid-key-for-probe', 'Content-Type': 'application/json' }, body: JSON.stringify({ locations: [[101.7116, 3.1579]], location_type: 'start', range_type: 'distance', range: [200] }) });
+      return { status: res.status, body: (await res.text()).slice(0, 200) }; } catch (e) { return { error: String(e) }; }
+  }, ENDPOINT.replace('driving-car', 'foot-walking'));
+  assert(!r.error, 'fetch failed (network/CORS): ' + r.error);
+  assert([401, 403].includes(r.status), 'unexpected status ' + r.status + ' ' + r.body);
+  return `HTTP ${r.status}: ${r.body.replace(/\s+/g, ' ')}`;
+});
+if (KEY) {
+  await test('real-api', 'Real HeiGIT walking area 200 m: one request, polygon smaller than the 200 m circle', async () => {
+    const reqs = []; const h = r => { if (r.url().endsWith('/foot-walking')) reqs.push(r.postDataJSON()); };
+    page.on('request', h);
+    await page.click('[data-tab=catchment]'); await page.fill('#coordIn', '3.1490, 101.7130'); await page.click('#coordGo');
+    await page.click('[data-tab=iso]'); await page.fill('#apiKey', KEY); await page.check('input[name=mode][value=walk]');
+    await page.click('#isoGo');
+    await page.waitForFunction(() => { const s = window.__mci.getState().iso; return s && s.mode === 'walk' && s.stats; }, null, { timeout: 90000 });
+    page.off('request', h);
+    const s = await page.evaluate(() => window.__mci.getState().iso);
+    assert(reqs.length === 1 && reqs[0].range_type === 'distance' && reqs[0].range[0] === 200, JSON.stringify(reqs));
+    assert(s.stats[0].area_km2 > 0 && s.stats[0].area_km2 < Math.PI * 0.2 * 0.2, 'area ' + s.stats[0].area_km2);
+    await page.check('input[name=mode][value=drive]');
+    return `area ${s.stats[0].area_km2.toFixed(4)} km² (circle would be 0.1257), population ${s.stats[0].population.toFixed(0)}`;
+  });
+}
+
 // ---- Optional REAL API tests (only with HEIGIT_API_KEY secret). The key is typed into the page, never printed.
 if (KEY) {
   for (const dir of ['to', 'from']) {
@@ -240,6 +266,54 @@ if (MODE === 'local') {
     const bodies = served.slice(n).map(b => b.locations[0][1]);
     assert(new Set(bodies).size === bodies.length && bodies.length === 4, 'repeated/missing completed calls: ' + JSON.stringify(bodies));
     return `stopped after ${done1} store(s); resumed after reload; 4 completed API calls, none repeated (a request cancelled by Stop is re-sent once)`;
+  });
+  const walkCalls = [];
+  await page.route(ENDPOINT.replace('driving-car', 'foot-walking'), async route => {
+    const body = route.request().postDataJSON(); walkCalls.push(body);
+    const d = body.range[0] / 111320;
+    const feats = body.locations.map(([lon, lat], gi) => ({ type: 'Feature', properties: { group_index: gi, value: body.range[0], center: [lon, lat] },
+      geometry: { type: 'Polygon', coordinates: [[[lon - d, lat], [lon, lat - d], [lon + d, lat], [lon, lat + d], [lon - d, lat]]] } }));
+    await route.fulfill({ status: 200, contentType: 'application/geo+json', body: JSON.stringify({ type: 'FeatureCollection', features: feats }) });
+  });
+  await test('simulated-api', 'walking 200 m (single): foot-walking request, one area, stats, labelled, exports', async () => {
+    await clearDB(); await page.reload(); await page.waitForFunction(() => window.__mci && window.__mci.getState().dataReady, null, { timeout: 120000 });
+    await page.click('[data-tab=catchment]'); await page.fill('#coordIn', '3.1490, 101.7130'); await page.click('#coordGo');
+    await page.click('[data-tab=iso]'); await page.fill('#apiKey', FAKE_KEY); await page.dispatchEvent('#apiKey', 'input');
+    await page.check('input[name=mode][value=walk]');
+    assert(await page.isHidden('#dirBox') && await page.isVisible('#walkM'), 'walk controls');
+    assert((await page.textContent('#isoDirLbl')).includes('Walking 200 m'), 'label');
+    const n = walkCalls.length; await page.click('#isoGo');
+    await page.waitForFunction(() => { const s = window.__mci.getState().iso; return s && s.mode === 'walk' && s.stats; }, null, { timeout: 60000 });
+    const b = walkCalls[walkCalls.length - 1];
+    assert(walkCalls.length === n + 1, 'calls'); assert(JSON.stringify(b) === JSON.stringify({ locations: [[101.713, 3.149]], location_type: 'start', range_type: 'distance', range: [200] }), JSON.stringify(b));
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#isoCsv')]);
+    const csv = fs.readFileSync(await dl.path(), 'utf8'); assert(dl.suggestedFilename() === 'walking_200m.csv' && csv.includes('walk_distance_m'), dl.suggestedFilename());
+    const st = await page.evaluate(() => window.__mci.getState().iso.stats[0]);
+    return `${JSON.stringify(b)} · area ${st.area_km2.toFixed(4)} km² · population ${st.population.toFixed(0)}`;
+  });
+  await test('simulated-api', 'walking batch: 7 buildings (1 invalid) → 2 requests of ≤5 locations, 7 rows in order, exports', async () => {
+    await page.click('[data-tab=batch]');
+    await page.fill('#batchIn', 'name,latitude,longitude\nW1,3.1490,101.7130\nW2,3.1500,101.7140\nBad,x,101\nW3,3.1510,101.7150\nW4,3.1520,101.7160\nW5,3.1530,101.7170\nW6,3.1540,101.7180\n');
+    await page.dispatchEvent('#batchIn', 'input'); await page.waitForTimeout(400);
+    const n = walkCalls.length; await page.click('#batchStart');
+    await page.waitForFunction(() => { const j = window.__mci.getState().job; return j && j.state === 'done'; }, null, { timeout: 120000 });
+    const calls = walkCalls.slice(n);
+    // W1 already cached from the single test, so: [W2..W6] in one request
+    assert(calls.every(c => c.locations.length <= 5), 'max 5'); 
+    const locs = calls.flatMap(c => c.locations.map(l => l[1]));
+    assert(new Set(locs).size === locs.length && locs.length === 5, 'unique uncached locations ' + JSON.stringify(locs));
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#batchCsv')]);
+    const csv = fs.readFileSync(await dl.path(), 'utf8').trim().split(/\r?\n/);
+    assert(csv[0] === 'name,latitude,longitude,walk_distance_m,population,population_weighted_rwi,wealth_coverage,area_km2,population_density,status', csv[0]);
+    assert(csv.length === 8 && csv.slice(1).map(l => l.split(',')[0]).join() === 'W1,W2,Bad,W3,W4,W5,W6', 'rows/order');
+    assert(csv[3].includes('failed: invalid coordinates'), 'invalid flagged');
+    const [g] = await Promise.all([page.waitForEvent('download'), page.click('#batchGeo')]);
+    const gj = JSON.parse(fs.readFileSync(await g.path(), 'utf8')); assert(gj.features.length === 6 && gj.features[0].properties.walk_distance_m === 200, 'geojson');
+    const [k] = await Promise.all([page.waitForEvent('download'), page.click('#batchKml')]);
+    assert((fs.readFileSync(await k.path(), 'utf8').match(/<Placemark>/g) || []).length === 6, 'kml');
+    await page.click('#batchShow');
+    await page.click('[data-tab=iso]'); await page.check('input[name=mode][value=drive]');
+    return `${calls.length} request(s) with ${calls.map(c => c.locations.length).join('+')} locations (W1 reused from cache); 7 rows; GeoJSON/KML 6 areas`;
   });
   await test('simulated-api', 'API key is not stored in localStorage, sessionStorage, IndexedDB or cookies', async () => {
     await page.fill('#apiKey', FAKE_KEY); await page.dispatchEvent('#apiKey', 'input');

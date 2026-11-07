@@ -31,6 +31,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .muted{color:var(--muted);font-size:12px}
 .pill{font-size:11px;padding:2px 8px;border-radius:12px;background:#eef4ff;color:#1849a9;font-weight:600}
 .pill.from{background:#fef0c7;color:#93370d}
+.pill.walk{background:#d1fadf;color:#05603a}
 fieldset.dir{border:1px solid var(--line);border-radius:8px;margin:8px 0;padding:6px 10px}
 fieldset.dir label{display:block;margin:3px 0}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}

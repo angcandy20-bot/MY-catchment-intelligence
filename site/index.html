@@ -45,6 +45,27 @@
     <p class="muted">In the HeiGIT dashboard, check that the key has <b>Isochrones</b> access and how much quota remains. The key is kept in this page's memory only: it is not saved, logged or exported, and it is sent only to api.heigit.org. Reloading the page forgets it.</p>
    </section>
 
+   <!-- Travel mode (shown on Isochrones and Batch tabs) -->
+   <section id="modePanel" class="card" hidden>
+    <h3>Travel mode</h3>
+    <fieldset class="dir">
+     <legend>Mode</legend>
+     <label><input type="radio" name="mode" value="drive" checked> <b>Driving</b> time, 1–10 minutes (10 contours)</label>
+     <label><input type="radio" name="mode" value="walk"> <b>Walking</b> distance along footpaths and streets</label>
+    </fieldset>
+    <fieldset class="dir" id="dirBox">
+     <legend>Driving direction</legend>
+     <label><input type="radio" name="dir" value="to" checked> Driving <b>TO</b> the store (arrival) — default</label>
+     <label><input type="radio" name="dir" value="from"> Driving <b>FROM</b> the store (departure)</label>
+    </fieldset>
+    <div id="walkBox" hidden>
+     <label class="fld">Walking distance (metres)
+      <input id="walkM" type="number" min="50" max="5000" step="10" value="200">
+     </label>
+     <p class="muted">Area reachable on foot within this network distance from the building point (HeiGIT <code>foot-walking</code>, OpenStreetMap footways, streets and crossings), not a straight-line circle. Up to 5 buildings share one API request in batch mode.</p>
+    </div>
+   </section>
+
    <!-- CATCHMENT -->
    <section data-pane="catchment">
     <div class="card">
@@ -71,15 +92,10 @@
    <!-- ISOCHRONES -->
    <section data-pane="iso" hidden>
     <div class="card">
-     <h3>Driving isochrones (1–10 minutes)</h3>
+     <h3 id="isoTitle">Driving isochrones (1–10 minutes)</h3>
      <div id="isoPoint" class="muted">Pick a store point on the Catchment tab or click the map.</div>
-     <fieldset class="dir">
-      <legend>Direction</legend>
-      <label><input type="radio" name="dir" value="to" checked> Driving <b>TO</b> the store (arrival) — default</label>
-      <label><input type="radio" name="dir" value="from"> Driving <b>FROM</b> the store (departure)</label>
-     </fieldset>
      <div class="row"><button id="isoGo" class="primary">Generate isochrones</button><span id="isoDirLbl" class="pill"></span></div>
-     <p class="muted">One request returns all ten contours. These are modelled driving times on the road network, without real-time traffic.</p>
+     <p class="muted" id="isoNote">One request returns all ten contours. These are modelled driving times on the road network, without real-time traffic.</p>
     </div>
     <div class="card" id="isoResult" hidden>
      <h3>Contours</h3>
@@ -111,7 +127,7 @@
    <section data-pane="batch" hidden>
     <div class="card">
      <h3>Batch store analysis</h3>
-     <p class="muted">Columns: <code>name, latitude, longitude</code> (CSV, or paste from Excel). Each store gets one API request returning ten cumulative driving-time contours; output has N × 10 rows.</p>
+     <p class="muted" id="batchNote">Columns: <code>name, latitude, longitude</code> (CSV, or paste from Excel). Each store gets one API request returning ten cumulative driving-time contours; output has N × 10 rows.</p>
      <textarea id="batchIn" rows="5" placeholder="name,latitude,longitude&#10;KLCC,3.1579,101.7116"></textarea>
      <div class="row">
       <label class="btn small">Load CSV file<input id="batchFile" type="file" accept=".csv,.txt,.tsv" hidden></label>
@@ -159,6 +175,7 @@
       <li><b>RWI</b> measures <i>relative</i> wealth within the country (an index centred near 0). It is <b>not</b> household income or spending in ringgit.</li>
       <li>The population and RWI datasets refer to <b>different years</b> (see Datasets above).</li>
       <li>The RWI <code>error</code> field is a per-sample uncertainty. It <b>cannot simply be summed</b> (or averaged) into a confidence interval for a region, so no regional interval is shown.</li>
+      <li><b>Walking distance areas</b> come from HeiGIT openrouteservice (foot-walking profile, <code>range_type: distance</code>, default 200 m) and follow OpenStreetMap footways, streets and crossings from the building point. Accuracy depends on the point being at the building (ideally its entrance) and on how completely footpaths are mapped in OpenStreetMap. Batch output has one row per building.</li>
       <li><b>Driving isochrones</b> come from HeiGIT openrouteservice (driving-car, OpenStreetMap roads). They are <b>modelled</b> travel times without real-time traffic. Each minute’s contour is the cumulative area reachable within that time, so populations of different minutes must not be added together.</li>
      </ul>
     </div>

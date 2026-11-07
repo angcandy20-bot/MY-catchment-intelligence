@@ -4,6 +4,10 @@ import { MINUTES } from './heigit.js';
 export const BATCH_COLUMNS = ['name', 'latitude', 'longitude', 'minutes', 'direction', 'population',
   'population_weighted_rwi', 'wealth_coverage', 'area_km2', 'population_density', 'status'];
 
+export const WALK_COLUMNS = ['name', 'latitude', 'longitude', 'walk_distance_m', 'population',
+  'population_weighted_rwi', 'wealth_coverage', 'area_km2', 'population_density', 'status'];
+export const columnsFor = job => (job && job.mode === 'walk' ? WALK_COLUMNS : BATCH_COLUMNS);
+
 export const DIRECTION_VALUE = { to: 'to_store (arrival)', from: 'from_store (departure)' };
 const HALT_KINDS = new Set(['missing_key', 'invalid_key', 'forbidden', 'quota_exhausted']);
 
@@ -21,24 +25,39 @@ export function statRow(store, minutes, direction, stats, status) {
     status,
   };
 }
-export function placeholderRows(store, direction, status) {
-  return MINUTES.map(m => statRow(store, m, direction, null, status));
+function statFields(stats) {
+  return {
+    population: stats ? r(stats.population, 1) : '',
+    population_weighted_rwi: stats ? (stats.population_weighted_rwi === null ? 'No data' : r(stats.population_weighted_rwi, 4)) : '',
+    wealth_coverage: stats ? (stats.wealth_coverage === null ? 'No data' : r(stats.wealth_coverage, 4)) : '',
+    area_km2: stats ? r(stats.area_km2, 4) : '',
+    population_density: stats ? (stats.population_density === null ? 'No data' : r(stats.population_density, 1)) : '',
+  };
+}
+export function walkRow(store, walkM, stats, status) {
+  return { name: store.name, latitude: store.latitude, longitude: store.longitude, walk_distance_m: walkM, ...statFields(stats), status };
+}
+// Rows for a store that has no result: 10 (driving) or 1 (walking). Never filled with numbers.
+export function placeholderRows(store, job, status) {
+  if (job.mode === 'walk') return [walkRow(store, job.walkM, null, status)];
+  return MINUTES.map(m => statRow(store, m, job.direction, null, status));
 }
 
-export function newJob({ stores, direction = 'to', maxDistM = 3000 }) {
+export function newJob({ stores, direction = 'to', maxDistM = 3000, mode = 'drive', walkM = 200 }) {
   return {
-    id: 'job-' + Date.now(), createdAt: new Date().toISOString(), direction, maxDistM,
+    id: 'job-' + Date.now(), createdAt: new Date().toISOString(), direction, maxDistM, mode, walkM,
     stores: stores.map(s => ({ name: s.name, latitude: s.latitude, longitude: s.longitude, valid: s.valid !== false, error: s.error || '' })),
     results: {}, nextIndex: 0, state: 'ready', message: '',
   };
 }
 
-// All N x 10 rows in original store order, minutes 1..10. Unprocessed stores are flagged, never filled.
+// Driving: all N x 10 rows in original store order, minutes 1..10. Walking: N rows.
+// Unprocessed stores are flagged, never filled.
 export function jobRows(job) {
   const rows = [];
   job.stores.forEach((s, i) => {
     const res = job.results[i];
-    rows.push(...(res ? res.rows : placeholderRows(s, job.direction, 'incomplete: not processed yet')));
+    rows.push(...(res ? res.rows : placeholderRows(s, job, 'incomplete: not processed yet')));
   });
   return rows;
 }
@@ -73,7 +92,7 @@ export class BatchRunner {
       if (this.stopRequested) break;
       const store = job.stores[i];
       if (!store.valid) {
-        job.results[i] = { status: 'failed', rows: placeholderRows(store, job.direction, 'failed: ' + (store.error || 'invalid coordinates')) };
+        job.results[i] = { status: 'failed', rows: placeholderRows(store, job, 'failed: ' + (store.error || 'invalid coordinates')) };
         job.nextIndex = i + 1; await this.d.save(job); this.d.onUpdate(job, { index: i }); continue;
       }
       let contours = null, failure = null, pauses = 0;
@@ -83,7 +102,7 @@ export class BatchRunner {
         if (this.stopRequested) break;
         this.ctrl = new AbortController();
         try {
-          const res = await this.d.getContours(store, job.direction, { signal: this.ctrl.signal });
+          const res = await this.d.getContours(store, job.direction, { signal: this.ctrl.signal, index: i, job });
           this.ctrl = null;
           if (!res.fromCache) this.lastCall = this.d.now();
           contours = res.contours; break;
@@ -102,7 +121,14 @@ export class BatchRunner {
       }
       if (this.stopRequested && !contours) break;
       if (failure) {
-        job.results[i] = { status: 'failed', rows: placeholderRows(store, job.direction, 'failed: ' + failure.message) };
+        job.results[i] = { status: 'failed', rows: placeholderRows(store, job, 'failed: ' + failure.message) };
+      } else if (job.mode === 'walk') {
+        const g = contours[0].geometry; let row;
+        try {
+          const st = await this.d.aggregate(g, job.maxDistM);
+          row = walkRow(store, job.walkM, st, st.population_weighted_rwi === null ? 'ok (no RWI match within threshold)' : 'ok');
+          job.results[i] = { status: 'ok', rows: [row], contours };
+        } catch (e) { job.results[i] = { status: 'failed', rows: [walkRow(store, job.walkM, null, 'failed: aggregation error (' + e.message + ')')], contours }; }
       } else {
         const rows = []; let aggFail = false;
         for (const c of contours) {

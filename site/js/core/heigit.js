@@ -83,13 +83,12 @@ export function parseContours(json) {
   return MINUTES.map(m => ({ minutes: m, geometry: byMin.get(m) }));
 }
 
-export async function requestIsochrones({ lat, lon, direction = 'to', apiKey, fetchImpl, signal }) {
+async function postIsochrones(endpoint, body, apiKey, fetchImpl, signal) {
   if (!apiKey || !String(apiKey).trim()) throw new HeigitError('missing_key', ERROR_TEXT.missing_key);
   const f = fetchImpl || globalThis.fetch;
-  const body = buildIsochroneBody(lat, lon, direction);
   let res;
   try {
-    res = await f(HEIGIT_ISOCHRONES_ENDPOINT, {
+    res = await f(endpoint, {
       method: 'POST',
       headers: {
         'Authorization': String(apiKey).trim(),
@@ -105,9 +104,55 @@ export async function requestIsochrones({ lat, lon, direction = 'to', apiKey, fe
     throw new HeigitError('network', ERROR_TEXT.network);
   }
   if (!res.ok) throw await classifyError(res);
-  let json;
-  try { json = await res.json(); } catch (e) { throw new HeigitError('incomplete', 'HeiGIT returned a response that is not valid JSON.'); }
+  try { return await res.json(); } catch (e) { throw new HeigitError('incomplete', 'HeiGIT returned a response that is not valid JSON.'); }
+}
+
+export async function requestIsochrones({ lat, lon, direction = 'to', apiKey, fetchImpl, signal }) {
+  const body = buildIsochroneBody(lat, lon, direction);
+  const json = await postIsochrones(HEIGIT_ISOCHRONES_ENDPOINT, body, apiKey, fetchImpl, signal);
   return { contours: parseContours(json), direction, request: body };
+}
+
+// ---- Walking distance (foot-walking profile, range_type "distance", metres) ----
+export const HEIGIT_WALK_ENDPOINT = 'https://api.heigit.org/openrouteservice/v2/isochrones/foot-walking';
+export const WALK_MAX_LOCATIONS = 5;   // openrouteservice limit per isochrone request
+export const WALK_DEFAULT_M = 200;
+
+export function buildWalkBody(points, distanceM) {
+  const d = Math.round(Number(distanceM));
+  if (!(d >= 10 && d <= 120000)) throw new Error('Walking distance must be between 10 m and 120 km');
+  if (!points.length || points.length > WALK_MAX_LOCATIONS) throw new Error('1 to ' + WALK_MAX_LOCATIONS + ' locations per request');
+  return {
+    locations: points.map(p => [p.lon, p.lat]),   // [longitude, latitude]
+    location_type: 'start',                        // walking out from the building
+    range_type: 'distance',
+    range: [d],
+  };
+}
+
+// One polygon per requested location, matched by properties.group_index.
+export function parseWalk(json, n, distanceM) {
+  const out = new Array(n).fill(null);
+  for (const f of (json && json.features) || []) {
+    const p = (f && f.properties) || {};
+    const gi = Number(p.group_index ?? 0), v = Number(p.value);
+    if (!f.geometry || !/Polygon$/.test(f.geometry.type) || !(gi >= 0 && gi < n)) continue;
+    if (Number.isFinite(v) && Math.abs(v - distanceM) > 0.5) continue;
+    out[gi] = f.geometry;
+  }
+  const missing = out.map((g, i) => (g ? null : i + 1)).filter(Boolean);
+  if (missing.length) throw new HeigitError('incomplete', 'HeiGIT returned no walking area for location(s) ' + missing.join(', ') + '.', { missing });
+  return out;
+}
+
+export async function requestWalkIsochrones({ points, distanceM = WALK_DEFAULT_M, apiKey, fetchImpl, signal }) {
+  const body = buildWalkBody(points, distanceM);
+  const json = await postIsochrones(HEIGIT_WALK_ENDPOINT, body, apiKey, fetchImpl, signal);
+  return parseWalk(json, points.length, body.range[0]);
+}
+
+export function walkCacheKey(lat, lon, distanceM) {
+  return ['foot-walking', 'start', 'd' + Math.round(distanceM), Number(lat).toFixed(6), Number(lon).toFixed(6)].join('|');
 }
 
 export function cacheKey(lat, lon, direction) {

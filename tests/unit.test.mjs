@@ -4,9 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { parseTile, aggregateGeometry, polygonsAreaM2 } from '../site/js/core/aggregate.js';
-import { requestIsochrones, buildIsochroneBody, HEIGIT_ISOCHRONES_ENDPOINT, parseContours } from '../site/js/core/heigit.js';
+import { requestIsochrones, buildIsochroneBody, HEIGIT_ISOCHRONES_ENDPOINT, parseContours, requestWalkIsochrones, buildWalkBody } from '../site/js/core/heigit.js';
 import { parseLatLon, parseStoresTable, importGeoJSON, toCSV, toKML, toTSV } from '../site/js/core/geo.js';
-import { BatchRunner, newJob, jobRows, BATCH_COLUMNS } from '../site/js/core/batch.js';
+import { BatchRunner, newJob, jobRows, BATCH_COLUMNS, WALK_COLUMNS, columnsFor } from '../site/js/core/batch.js';
 
 const results = [];
 async function test(kind, name, fn) {
@@ -174,6 +174,33 @@ await test('simulated-api', 'batch: per-store API failure marks 10 failed rows a
   const job = newJob({ stores: stores.slice(2), direction: 'to', maxDistM: 3000 });
   await new BatchRunner(job, { getContours: async s => { if (s.name === 'C') { const e = new Error('no route'); e.kind = 'bad_request'; throw e; } return { contours: contoursFor(), fromCache: true }; }, aggregate: fakeAgg, save, sleep: async () => {}, minIntervalMs: 0 }).run();
   const rows = jobRows(job); assert.equal(rows.filter(r => r.status.startsWith('failed')).length, 10); assert.equal(rows[11].status, 'ok'); assert.equal(rows[10].status, 'ok (no RWI match within threshold)');
+});
+
+// ---------- walking distance (SIMULATED API)
+await test('simulated-api', 'walking: foot-walking endpoint, [lon,lat] order, start, distance 200, up to 5 locations, group_index mapping', async () => {
+  let seen;
+  const pts = [{ lat: 3.15, lon: 101.71 }, { lat: 3.16, lon: 101.72 }, { lat: 3.17, lon: 101.73 }];
+  const json = { type: 'FeatureCollection', features: [2, 0, 1].map(gi => ({ type: 'Feature', properties: { group_index: gi, value: 200 }, geometry: { type: 'Polygon', coordinates: [[[gi, 0], [gi + 1, 0], [gi, 1], [gi, 0]]] } })) };
+  const g = await requestWalkIsochrones({ points: pts, distanceM: 200, apiKey: 'K', fetchImpl: async (u, o) => { seen = { u, b: JSON.parse(o.body) }; return mockRes(200, json); } });
+  assert.equal(seen.u, 'https://api.heigit.org/openrouteservice/v2/isochrones/foot-walking');
+  assert.deepEqual(seen.b, { locations: [[101.71, 3.15], [101.72, 3.16], [101.73, 3.17]], location_type: 'start', range_type: 'distance', range: [200] });
+  assert.deepEqual(g.map(x => x.coordinates[0][0][0]), [0, 1, 2]);
+  assert.throws(() => buildWalkBody(new Array(6).fill(pts[0]), 200));
+});
+await test('simulated-api', 'walking: a missing location in the response is reported, not filled', async () => {
+  const json = { features: [{ properties: { group_index: 0, value: 200 }, geometry: { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [0, 1], [0, 0]]] } }] };
+  try { await requestWalkIsochrones({ points: [{ lat: 3, lon: 101 }, { lat: 3.1, lon: 101 }], distanceM: 200, apiKey: 'K', fetchImpl: async () => mockRes(200, json) }); assert.fail('should throw'); }
+  catch (e) { assert.equal(e.kind, 'incomplete'); assert.deepEqual(e.missing, [2]); }
+});
+await test('simulated-api', 'walking batch: one row per building, order kept, walk columns, invalid flagged', async () => {
+  const job = newJob({ stores, direction: 'to', maxDistM: 3000, mode: 'walk', walkM: 200 });
+  await new BatchRunner(job, { getContours: async (s, d, o) => { assert.equal(o.job.mode, 'walk'); return { contours: [{ walk_m: 200, geometry: { type: 'Polygon', coordinates: [], __m: 2 } }], fromCache: false }; },
+    aggregate: fakeAgg, save, sleep: async () => {}, minIntervalMs: 0 }).run();
+  const rows = jobRows(job);
+  assert.equal(rows.length, 4); assert.deepEqual(rows.map(r => r.name), ['A', 'Bad', 'C', 'D']);
+  assert.deepEqual(Object.keys(rows[0]), WALK_COLUMNS); assert.equal(columnsFor(job), WALK_COLUMNS);
+  assert.equal(rows[0].walk_distance_m, 200); assert.ok(rows[1].status.startsWith('failed: invalid')); assert.equal(rows[1].population, '');
+  assert.equal(columnsFor(newJob({ stores })), BATCH_COLUMNS);
 });
 
 const out = process.env.TEST_REPORT;
