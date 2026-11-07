@@ -28,7 +28,7 @@ export class HeigitError extends Error {
 export const ERROR_TEXT = {
   missing_key: 'No API key entered. Paste your HeiGIT API key in the API setup panel.',
   invalid_key: 'The API key was rejected (invalid or mistyped). Check it in your HeiGIT dashboard and paste it again.',
-  forbidden: 'This key does not have permission for the Isochrones service. Enable Isochrones access for the key in your HeiGIT dashboard.',
+  forbidden: 'HeiGIT refused this key (HTTP 403): either the key is invalid or mistyped, or it does not have access to the Isochrones service. Check the key and its Isochrones access in your HeiGIT dashboard.',
   quota_exhausted: 'The Isochrones quota for this key is used up. Check your remaining quota in the HeiGIT dashboard and try again after it resets.',
   rate_limited: 'Too many requests per minute. Pausing before continuing.',
   bad_request: 'HeiGIT could not compute an isochrone for this location (for example, no road nearby).',

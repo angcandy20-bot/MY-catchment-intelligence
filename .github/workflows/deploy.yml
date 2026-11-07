@@ -122,12 +122,12 @@ jobs:
           npm install --no-save playwright@1.48.2
           npx playwright install --with-deps chromium
           sleep 20
-          git fetch -q origin reports && git show origin/reports:py_check.json > /tmp/py_check.json || true
+          git fetch -q origin +refs/heads/reports:refs/remotes/origin/reports && git show origin/reports:py_check.json > /tmp/py_check.json || true
           node tests/e2e.mjs "$PAGE_URL" live /tmp/e2e_live.json /tmp/py_check.json
       - name: Push live report
         if: always()
         run: |
-          git fetch -q origin reports && git checkout -q -B reports origin/reports
+          git fetch -q origin +refs/heads/reports:refs/remotes/origin/reports && git checkout -q -B reports origin/reports
           cp /tmp/e2e_live.json . 2>/dev/null || echo '[]' > e2e_live.json
           echo "{\"page_url\":\"${{ needs.deploy.outputs.page_url }}\",\"sha\":\"$GITHUB_SHA\"}" > live.json
           git -c user.name=ci -c user.email=ci@users.noreply.github.com add e2e_live.json live.json

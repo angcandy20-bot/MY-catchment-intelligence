@@ -39,9 +39,9 @@ await test('unit', 'unmatched cells count in population but not RWI (coverage < 
   const got = await aggregateGeometry(cases.outside_rwi_area_unmatched, manifest, loadTile, 3000);
   assert.ok(got.population > 0); assert.equal(got.population_weighted_rwi, null); assert.equal(got.wealth_coverage, 0);
 });
-await test('unit', 'geodesic area of 0.01° square at equator ≈ 1.2364 km²', async () => {
+await test('unit', 'ellipsoidal area of 0.01° square at equator ≈ 1.23092 km² (a·Δλ × M·Δφ)', async () => {
   const a = polygonsAreaM2([[[[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]]]]) / 1e6;
-  close(a, 1.2364, 0.002, 'area');
+  close(a, 1.23092, 0.0005, 'area');
 });
 await test('unit', 'area subtracts holes', async () => {
   const outer = [[0, 0], [0.02, 0], [0.02, 0.02], [0, 0.02], [0, 0]], hole = [[0.005, 0.005], [0.015, 0.005], [0.015, 0.015], [0.005, 0.015], [0.005, 0.005]];

@@ -286,7 +286,7 @@ def main():
     m = re.search(r"E(\d{4})", (res.get("name") or "") + (res.get("url") or ""), re.I)
     v = re.search(r"R(\d{4}[A-Z])", (res.get("name") or "") + (res.get("url") or ""), re.I)
     report["population"]["epoch"] = m.group(1) if m else None
-    report["population"]["release"] = ("R" + v.group(1)) if v else None
+    report["population"]["release"] = ("R" + v.group(1).upper()) if v else None
 
     # ---- RWI
     pr = package("relative-wealth-index")
@@ -335,7 +335,7 @@ def main():
         "rwi": {
             "dataset": "Meta Relative Wealth Index via HDX relative-wealth-index", "resource": rres.get("name"),
             "dataset_date": pr.get("dataset_date"), "hdx_last_modified": rres.get("last_modified"), "samples": rinfo["rows_valid"],
-            "approx_tile_size_km": rinfo.get("approx_tile_size_km_at_equator"), "url": "https://data.humdata.org/dataset/relative-wealth-index",
+            "approx_tile_size_km": rinfo.get("approx_tile_size_km_at_equator") or 2.4,  # 2.4 km per HDX methodology when no quadkey column "url": "https://data.humdata.org/dataset/relative-wealth-index",
         },
         "matching": report["matching"],
         "tiles": tiles, "total_bytes": nbytes,

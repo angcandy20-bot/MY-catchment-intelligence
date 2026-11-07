@@ -144,16 +144,21 @@ export function finalize(acc, areaM2) {
   };
 }
 
-// ---- Geodesic area (spherical, authalic radius of WGS84) ----
-const R_AUTHALIC = 6371007.181;
+// ---- Geodesic area on the WGS84 ellipsoid ----
+// Latitudes are converted to authalic latitude, which maps the ellipsoid onto a sphere of equal area
+// (radius Rq); the spherical polygon area there equals the ellipsoidal area.
+const WGS_A = 6378137, WGS_F = 1 / 298.257223563, E2 = WGS_F * (2 - WGS_F), E = Math.sqrt(E2);
+const qf = phi => { const s = Math.sin(phi); return (1 - E2) * (s / (1 - E2 * s * s) - (1 / (2 * E)) * Math.log((1 - E * s) / (1 + E * s))); };
+const QP = qf(Math.PI / 2), RQ = WGS_A * Math.sqrt(QP / 2);
+const sinAuthalic = latDeg => Math.max(-1, Math.min(1, qf(latDeg * Math.PI / 180) / QP));
 function ringAreaM2(ring) {
   const n = ring.length; if (n < 3) return 0;
   const rad = Math.PI / 180; let s = 0;
   for (let i = 0; i < n; i++) {
     const p1 = ring[i], p2 = ring[(i + 1) % n];
-    s += (p2[0] - p1[0]) * rad * (2 + Math.sin(p1[1] * rad) + Math.sin(p2[1] * rad));
+    s += (p2[0] - p1[0]) * rad * (2 + sinAuthalic(p1[1]) + sinAuthalic(p2[1]));
   }
-  return Math.abs(s * R_AUTHALIC * R_AUTHALIC / 2);
+  return Math.abs(s * RQ * RQ / 2);
 }
 export function polygonsAreaM2(polys) {
   let a = 0;

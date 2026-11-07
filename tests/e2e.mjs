@@ -109,7 +109,7 @@ await test('real', 'HeiGIT endpoint reachable from the browser; invalid key give
   }, ENDPOINT);
   assert(!r.error, 'fetch failed (network/CORS): ' + r.error);
   assert([401, 403].includes(r.status), 'unexpected status ' + r.status + ' ' + r.body);
-  return `HTTP ${r.status}: ${r.body}`;
+  return `HTTP ${r.status}: ${r.body.replace(/\s+/g, ' ')} → shown to users as the "${r.status === 401 ? 'invalid key' : 'refused key / no Isochrones access'}" message`;
 });
 
 // ---- Optional REAL API tests (only with HEIGIT_API_KEY secret). The key is typed into the page, never printed.
@@ -120,7 +120,7 @@ if (KEY) {
       page.on('request', h);
       await page.click('[data-tab=iso]'); await page.fill('#apiKey', KEY);
       await page.check(`input[name=dir][value=${dir}]`);
-      await page.fill('#coordIn', dir === 'to' ? '3.1579, 101.7116' : '3.1580, 101.7117'); await page.click('[data-tab=catchment]'); await page.click('#coordGo'); await page.click('[data-tab=iso]');
+      await page.click('[data-tab=catchment]'); await page.fill('#coordIn', dir === 'to' ? '3.1579, 101.7116' : '3.1580, 101.7117'); await page.click('#coordGo'); await page.click('[data-tab=iso]');
       await page.click('#isoGo');
       await page.waitForFunction(() => { const s = window.__mci.getState().iso; return s && s.stats; }, null, { timeout: 90000 });
       page.off('request', h);
@@ -157,7 +157,7 @@ if (MODE === 'local') {
   });
   const errFor = async (m, re) => {
     mode = m; await clearDB();
-    await page.fill('#coordIn', `3.${Math.floor(Math.random() * 9000) + 1000}, 101.70`); await page.click('[data-tab=catchment]'); await page.click('#coordGo'); await page.click('[data-tab=iso]');
+    await page.click('[data-tab=catchment]'); await page.fill('#coordIn', `3.${Math.floor(Math.random() * 9000) + 1000}, 101.70`); await page.click('#coordGo'); await page.click('[data-tab=iso]');
     await page.click('#isoGo'); await page.waitForTimeout(800);
     const t = await page.textContent('#stApi'); assert(re.test(t), `${m}: "${t}"`); return t;
   };
@@ -168,7 +168,7 @@ if (MODE === 'local') {
   });
   await page.fill('#apiKey', FAKE_KEY);
   await test('simulated-api', 'invalid key (401) message', () => errFor('401', /rejected|invalid/i));
-  await test('simulated-api', 'insufficient permissions (403) message', () => errFor('403', /permission/i));
+  await test('simulated-api', 'refused key / insufficient permissions (403) message', () => errFor('403', /invalid.*Isochrones access/i));
   await test('simulated-api', 'exhausted quota message', () => errFor('quota', /quota/i));
   await test('simulated-api', 'connection failure message', () => errFor('net', /connect/i));
   mode = 'ok';

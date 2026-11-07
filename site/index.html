@@ -155,7 +155,7 @@
       <li><b>Population</b>: GHS-POP cells are kept at their original resolution. A cell counts when its <b>centre</b> falls inside the polygon (holes excluded, MultiPolygon parts counted once). Values are people per cell, so they are summed; densities are never summed. NoData and zero cells are excluded.</li>
       <li><b>Wealth matching</b>: each population cell is matched to its nearest valid RWI sample by great-circle distance in metres. Matches farther than the threshold are not used. Unmatched cells still count toward total population but not toward RWI.</li>
       <li><b>Population-weighted RWI</b> = Σ(matched cell population × RWI) ÷ Σ(matched cell population). <b>Wealth coverage</b> = matched population ÷ total population. With no valid matches the dashboard shows “No data”, never zero.</li>
-      <li><b>Area</b> is geodesic (on the sphere); <b>population density</b> = population ÷ area (people per km²).</li>
+      <li><b>Area</b> is geodesic on the WGS84 ellipsoid; <b>population density</b> = population ÷ area (people per km²).</li>
       <li><b>RWI</b> measures <i>relative</i> wealth within the country (an index centred near 0). It is <b>not</b> household income or spending in ringgit.</li>
       <li>The population and RWI datasets refer to <b>different years</b> (see Datasets above).</li>
       <li>The RWI <code>error</code> field is a per-sample uncertainty. It <b>cannot simply be summed</b> (or averaged) into a confidence interval for a region, so no regional interval is shown.</li>
