@@ -16,7 +16,11 @@ for (const s of py) {
   const dR = (s.population_weighted_rwi === null || js.population_weighted_rwi === null) ? (s.population_weighted_rwi === js.population_weighted_rwi ? 0 : Infinity) : Math.abs(js.population_weighted_rwi - s.population_weighted_rwi);
   const dC = (s.wealth_coverage === null || js.wealth_coverage === null) ? (s.wealth_coverage === js.wealth_coverage ? 0 : Infinity) : Math.abs(js.wealth_coverage - s.wealth_coverage);
   const relArea = Math.abs(js.area_km2 - s.area_km2_ellipsoid) / Math.max(1e-9, s.area_km2_ellipsoid);
-  const pass = relPop <= 0.002 && dR <= 0.002 && dC <= 0.002 && relArea <= 0.001;
+  // income & spending: relative difference (or both "No data")
+  const rel = (a, b) => (a == null || b == null) ? (a == b ? 0 : Infinity) : Math.abs(a - b) / Math.max(1, Math.abs(b));
+  const econKeys = ['income_median_hh_avg', 'income_mean_hh_avg', 'expenditure_mean_hh_avg', 'est_households', 'spending_power_rm_month'];
+  const econDiff = areas && 'est_households' in s ? Math.max(...econKeys.map(k => rel(js[k], s[k] ?? null))) : 0;
+  const pass = relPop <= 0.002 && dR <= 0.002 && dC <= 0.002 && relArea <= 0.001 && econDiff <= 0.005;
   checks.push({ kind: 'real-data', name: `Independent raster check: ${s.name}`, pass,
     detail: `population JS ${js.population.toFixed(0)} vs raster ${s.population.toFixed(0)} (Δ ${(relPop * 100).toFixed(3)}%); RWI JS ${js.population_weighted_rwi?.toFixed(4) ?? 'No data'} vs ${s.population_weighted_rwi?.toFixed(4) ?? 'No data'}; coverage ${js.wealth_coverage?.toFixed(4) ?? 'No data'} vs ${s.wealth_coverage?.toFixed(4) ?? 'No data'}; area ${js.area_km2.toFixed(3)} vs ${s.area_km2_ellipsoid.toFixed(3)} km²` +
       (areas ? `; median HH income RM ${js.income_median_hh_avg?.toFixed(0) ?? 'No data'} vs ${s.income_median_hh_avg?.toFixed(0) ?? 'No data'}; spending power RM ${js.spending_power_rm_month?.toFixed(0) ?? 'No data'} vs ${s.spending_power_rm_month?.toFixed(0) ?? 'No data'} (max Δ ${(econDiff * 100).toFixed(3)}%)` : ''),
