@@ -1,0 +1,250 @@
+{
+ "generated_at": "2026-11-13T08:53:00.186400+00:00",
+ "population": {
+  "hdx_dataset": {
+   "name": "mys-ghsl",
+   "title": "Malaysia: Copernicus Global Human Settlement Layer (GHSL)",
+   "dataset_date": "[2025-01-01T00:00:00 TO 2025-12-31T23:59:59]",
+   "last_modified": "2025-01-09T17:15:48.115625",
+   "dataset_source": "European Commission, Joint Research Centre (JRC)",
+   "license_title": "Creative Commons Attribution International (CC BY)",
+   "methodology": "Other",
+   "methodology_other": "The GHSL relies on the design and implementation of spatial data processing technologies that allow automatic data analytics and information extraction from large amounts of heterogeneous geospatial data including global, fine-scale satellite image data streams, census data, and crowd sourced or volunteered geographic information sources.  \r\n\r\nMethodology [link](https://human-settlement.emergency.copernicus.eu/documents/GHSL_Data_Package_2023.pdf?t=1727170839).",
+   "caveats": "Pesaresi M., Politis P. (2023): GHS-BUILT-S R2023A - GHS built-up surface grid, derived from Sentinel2 composite and Landsat, multitemporal (1975-2030). European Commission, Joint Research Centre (JRC)\r\nPID: http://data.europa.eu/89h/9f06f36f-4b11-47ec-abb0-4f8b7b1d72ea\r\ndoi:10.2905/9F06F36F-4B11-47EC-ABB0-4F8B7B1D72EA \r\n\r\nSchiavina M., Freire S., Carioli A., MacManus K. (2023): GHS-POP R2023A - GHS population grid multitemporal (1975-2030). European Commission, Joint Research Centre (JRC)\r\nPID: http://data.europa.eu/89h/2ff68a52-5b5b-4a22-8f40-c41da8332cfe\r\ndoi:10.2905/2FF68A52-5B5B-4A22-8F40-C41DA8332CFE \r\n"
+  },
+  "hdx_resources": [
+   {
+    "name": "GHS Built-up Surface",
+    "format": "GeoTIFF",
+    "size": 8333764,
+    "url": "https://data.humdata.org/dataset/f5333d5e-012a-4639-9745-bac38743a751/resource/d22aec1f-7506-4f86-8063-d0791ed235ba/download/ghs_built_s_e2025_r2023a_54009_100_v1_0_mys.tif",
+    "last_modified": "2025-01-09T17:15:47.815298",
+    "created": "2025-01-09T17:15:45.296660",
+    "description": "Product: GHS-BUILT-S, Epoch: 2025, Resolution: 100m, Coordinate system: Mollweide, Classification: total - residential (RES) & non residential (NRES) classification."
+   },
+   {
+    "name": "GHS Population Grid",
+    "format": "GeoTIFF",
+    "size": 34296124,
+    "url": "https://data.humdata.org/dataset/f5333d5e-012a-4639-9745-bac38743a751/resource/c3090974-9133-449f-ac29-51ca490ebf44/download/ghs_pop_e2025_r2023a_54009_100_v1_0_mys.tif",
+    "last_modified": "2025-01-09T17:15:48.115625",
+    "created": "2025-01-09T17:15:45.296664",
+    "description": "Product: GHS-POP, Epoch: 2025, Resolution: 100m, Coordinate system: Mollweide"
+   }
+  ],
+  "selected_resource": {
+   "name": "GHS Population Grid",
+   "format": "GeoTIFF",
+   "size": 34296124,
+   "url": "https://data.humdata.org/dataset/f5333d5e-012a-4639-9745-bac38743a751/resource/c3090974-9133-449f-ac29-51ca490ebf44/download/ghs_pop_e2025_r2023a_54009_100_v1_0_mys.tif",
+   "last_modified": "2025-01-09T17:15:48.115625",
+   "created": "2025-01-09T17:15:45.296664",
+   "description": "Product: GHS-POP, Epoch: 2025, Resolution: 100m, Coordinate system: Mollweide"
+  },
+  "selection": "preferred: GHS-POP E2025 R2023A 100 m (Mollweide)",
+  "raster": {
+   "file": "GHS_Population_Grid.tif",
+   "crs_wkt_name": "World_Mollweide",
+   "crs_epsg": null,
+   "crs_authority": [
+    "ESRI",
+    "54009"
+   ],
+   "is_geographic": false,
+   "width": 19755,
+   "height": 8028,
+   "resolution": [
+    100.0,
+    100.0
+   ],
+   "resolution_units": "metres",
+   "bounds": [
+    9947700.0,
+    105400.0,
+    11923200.0,
+    908200.0
+   ],
+   "dtype": "float64",
+   "nodata": -200.0,
+   "band_tags": {},
+   "dataset_tags": {
+    "AREA_OR_POINT": "Area"
+   },
+   "units": "people per cell (count)",
+   "populated_cells": 1930406,
+   "nodata_cells": 125482551,
+   "zero_cells": 31180183,
+   "negative_non_nodata_cells": 0,
+   "population_total": 33707251.882955424,
+   "row_latitude_max_deviation_deg": 0.0,
+   "source_parts": [
+    "GHS_Population_Grid.tif"
+   ]
+  },
+  "epoch": "2025",
+  "release": "R2023A"
+ },
+ "rwi": {
+  "hdx_dataset": {
+   "name": "relative-wealth-index",
+   "title": "Relative Wealth Index",
+   "dataset_date": "[2021-04-01T00:00:00 TO 2023-02-17T23:59:59]",
+   "last_modified": "2026-05-11T13:17:29.096050",
+   "dataset_source": "Facebook",
+   "license_title": "Other",
+   "methodology": "Other",
+   "methodology_other": "Researchers at the University of California - Berkeley and Facebook developed micro-estimates of wealth and poverty that cover the populated surface of all 135 low and middle-income countries (LMICs) at 2.4km resolution. The estimates are built by applying machine learning algorithms to vast and heterogeneous data from satellites, mobile phone networks, topographic maps, as well as aggregated and de-identified connectivity data from Facebook. They train and calibrate the estimates using nationally-representative household survey 20 data from 56 LMICs, then validate their accuracy using four independent sources of household survey data from 18 countries. They also provide confidence intervals for each micro-estimate to facilitate responsible downstream use.\r\n\r\nResearch publication for the Relative Wealth Index is available here: https://www.pnas.org/content/119/3/e2113658119",
+   "caveats": "Glide: EQ-2023-000015-TUR"
+  },
+  "selected_resource": {
+   "name": "Malaysia_relative_wealth_index.csv",
+   "format": "CSV",
+   "size": 628186,
+   "url": "https://data.humdata.org/dataset/76f2a2ea-ba50-40f5-b79c-db95d668b843/resource/4249dc0a-46a4-4f66-93c6-0d87dec072a6/download/mys_relative_wealth_index.csv",
+   "last_modified": "2021-04-08T19:20:33.765346",
+   "created": "2021-04-08T19:20:40.034927",
+   "description": "Relative Wealth Index for Malaysia"
+  },
+  "table": {
+   "fields": [
+    "latitude",
+    "longitude",
+    "rwi",
+    "error"
+   ],
+   "rows_total": 18147,
+   "rows_missing_rwi_or_coords": 0,
+   "rows_valid": 18147,
+   "duplicate_coordinates": 0,
+   "rwi_min": -1.404,
+   "rwi_max": 1.757,
+   "rwi_mean": 0.0008272441725905095,
+   "lat_range": [
+    0.8898568,
+    7.3515708
+   ],
+   "lon_range": [
+    99.6569824,
+    119.2565918
+   ],
+   "error_min": 0.405,
+   "error_max": 0.734,
+   "error_mean": 0.5217565437813412
+  }
+ },
+ "notes": [],
+ "matching": {
+  "method": "nearest valid RWI sample by great-circle distance (unit-sphere k-d tree, R=6371008.8 m)",
+  "stored_distance": "metres, rounded UP (ceil), uint16, 65535 = >= 65.5 km",
+  "default_threshold_m": 3000,
+  "population_share_within_3km": 0.9844473190991925,
+  "distance_percentiles_m": {
+   "50": 998.7055712966807,
+   "90": 1456.0315765940302,
+   "99": 6902.332126030366,
+   "99.9": 12901.040619310073
+  }
+ },
+ "econ": {
+  "sources": [
+   "https://storage.dosm.gov.my/hies/hh_income_dun.parquet",
+   "https://storage.dosm.gov.my/hies/hh_expenditure_dun.parquet",
+   "https://storage.dosm.gov.my/hies/hh_income_parlimen.parquet",
+   "https://storage.dosm.gov.my/hies/hh_expenditure_parlimen.parquet",
+   "https://api.data.gov.my/data-catalogue?id=hh_profile_state&limit=100000",
+   "https://storage.dosm.gov.my/population/population_state.parquet"
+  ],
+  "years": {
+   "income_dun": 2024,
+   "expenditure_dun": 2024,
+   "income_parlimen": 2024,
+   "expenditure_parlimen": 2024
+  },
+  "columns": {
+   "income_dun": [
+    "date",
+    "state",
+    "parlimen",
+    "dun",
+    "income_median",
+    "income_mean"
+   ],
+   "expenditure_dun": [
+    "date",
+    "state",
+    "parlimen",
+    "dun",
+    "expenditure"
+   ]
+  },
+  "household_size_unit_fix": "population x 1000 (raw median ratio 0.00364)",
+  "household_size_year": 2024,
+  "household_size_by_state": {
+   "Johor": 3.701,
+   "Kedah": 3.918,
+   "Kelantan": 4.835,
+   "Melaka": 3.448,
+   "Negeri Sembilan": 3.509,
+   "Pahang": 3.77,
+   "Perak": 3.576,
+   "Perlis": 3.128,
+   "Pulau Pinang": 3.303,
+   "Sabah": 4.641,
+   "Sarawak": 3.836,
+   "Selangor": 3.551,
+   "Terengganu": 3.903,
+   "W.P. Kuala Lumpur": 3.195,
+   "W.P. Labuan": 3.775,
+   "W.P. Putrajaya": 3.457
+  },
+  "boundary_search": {
+   "repo": "dosm-malaysia/data-open",
+   "geojson_files": [
+    "datasets/geodata/administrative_0_malaysia.geojson",
+    "datasets/geodata/administrative_1_state.geojson",
+    "datasets/geodata/administrative_2_district.geojson",
+    "datasets/geodata/electoral_0_parlimen.geojson",
+    "datasets/geodata/electoral_1_dun.geojson"
+   ],
+   "tried": [
+    "dosm-malaysia/data-open: HTTP 200"
+   ]
+  },
+  "boundaries": {
+   "repo": "dosm-malaysia/data-open",
+   "dun": "datasets/geodata/electoral_1_dun.geojson",
+   "parlimen": "datasets/geodata/electoral_0_parlimen.geojson"
+  },
+  "boundary_columns": {
+   "dun": [
+    "state",
+    "parlimen",
+    "dun",
+    "code_state",
+    "code_parlimen",
+    "code_dun",
+    "code_state_dun"
+   ],
+   "parlimen": [
+    "state",
+    "parlimen",
+    "code_state",
+    "code_parlimen"
+   ]
+  },
+  "areas": {
+   "dun_polygons": 600,
+   "ft_parlimen_polygons": 13,
+   "matched_income": 613,
+   "matched_expenditure": 613,
+   "unmatched_examples": []
+  },
+  "cells_with_area": 1930088,
+  "cells_without_area": 318
+ },
+ "output": {
+  "tiles": 545,
+  "bytes": 31657464,
+  "data_version": "f4b2d5c086"
+ }
+}

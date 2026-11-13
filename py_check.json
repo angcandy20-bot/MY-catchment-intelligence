@@ -1,0 +1,300 @@
+[
+ {
+  "name": "KLCC 1 km box",
+  "population": 16199.427836894989,
+  "cells": 99,
+  "matched_population": 16199.427836894989,
+  "population_weighted_rwi": 1.5582271104381338,
+  "wealth_coverage": 1.0,
+  "area_km2_ellipsoid": 0.9955613031360507,
+  "geometry": {
+   "type": "Polygon",
+   "coordinates": [
+    [
+     [
+      101.7071,
+      3.1534
+     ],
+     [
+      101.7161,
+      3.1534
+     ],
+     [
+      101.7161,
+      3.1624
+     ],
+     [
+      101.7071,
+      3.1624
+     ],
+     [
+      101.7071,
+      3.1534
+     ]
+    ]
+   ]
+  },
+  "est_households": 5070.243454427227,
+  "income_median_hh_avg": 10894.71793526325,
+  "income_mean_hh_avg": 14658.940909875058,
+  "expenditure_mean_hh_avg": 9071.592804705275,
+  "spending_power_rm_month": 45995184.039286055,
+  "econ_coverage": 1.0
+ },
+ {
+  "name": "KL city centre with hole (KLCC park excluded)",
+  "population": 147247.2859214861,
+  "cells": 1233,
+  "matched_population": 147247.2859214861,
+  "population_weighted_rwi": 1.4883736313389389,
+  "wealth_coverage": 1.0,
+  "area_km2_ellipsoid": 12.389241228952706,
+  "geometry": {
+   "type": "Polygon",
+   "coordinates": [
+    [
+     [
+      101.69,
+      3.14
+     ],
+     [
+      101.725,
+      3.14
+     ],
+     [
+      101.725,
+      3.17
+     ],
+     [
+      101.69,
+      3.17
+     ],
+     [
+      101.69,
+      3.14
+     ]
+    ],
+    [
+     [
+      101.71,
+      3.152
+     ],
+     [
+      101.71,
+      3.158
+     ],
+     [
+      101.717,
+      3.158
+     ],
+     [
+      101.717,
+      3.152
+     ],
+     [
+      101.71,
+      3.152
+     ]
+    ]
+   ]
+  },
+  "est_households": 46086.78745586419,
+  "income_median_hh_avg": 11068.760825033687,
+  "income_mean_hh_avg": 14713.914992326163,
+  "expenditure_mean_hh_avg": 9076.621683146523,
+  "spending_power_rm_month": 418312334.3284621,
+  "econ_coverage": 1.0
+ },
+ {
+  "name": "MultiPolygon: George Town + Johor Bahru centre",
+  "population": 59419.61753028445,
+  "cells": 745,
+  "matched_population": 59419.61753028445,
+  "population_weighted_rwi": 1.0148895378053682,
+  "wealth_coverage": 1.0,
+  "area_km2_ellipsoid": 16.88857749518895,
+  "geometry": {
+   "type": "MultiPolygon",
+   "coordinates": [
+    [
+     [
+      [
+       100.32,
+       5.405
+      ],
+      [
+       100.345,
+       5.405
+      ],
+      [
+       100.345,
+       5.43
+      ],
+      [
+       100.32,
+       5.43
+      ],
+      [
+       100.32,
+       5.405
+      ]
+     ]
+    ],
+    [
+     [
+      [
+       103.745,
+       1.455
+      ],
+      [
+       103.775,
+       1.455
+      ],
+      [
+       103.775,
+       1.48
+      ],
+      [
+       103.745,
+       1.48
+      ],
+      [
+       103.745,
+       1.455
+      ]
+     ]
+    ]
+   ]
+  },
+  "est_households": 16296.118660108019,
+  "income_median_hh_avg": 9702.37471725646,
+  "income_mean_hh_avg": 11880.34831038346,
+  "expenditure_mean_hh_avg": 7444.8329055318745,
+  "spending_power_rm_month": 121321880.43322419,
+  "econ_coverage": 1.0
+ },
+ {
+  "name": "Putrajaya concave",
+  "population": 70465.11064896407,
+  "cells": 2268,
+  "matched_population": 70465.11064896407,
+  "population_weighted_rwi": 0.7453441522601828,
+  "wealth_coverage": 1.0,
+  "area_km2_ellipsoid": 27.66033540471816,
+  "geometry": {
+   "type": "Polygon",
+   "coordinates": [
+    [
+     [
+      101.67,
+      2.9
+     ],
+     [
+      101.72,
+      2.9
+     ],
+     [
+      101.72,
+      2.96
+     ],
+     [
+      101.7,
+      2.93
+     ],
+     [
+      101.67,
+      2.96
+     ],
+     [
+      101.67,
+      2.9
+     ]
+    ]
+   ]
+  },
+  "est_households": 20317.063829982,
+  "income_median_hh_avg": 10811.601172004534,
+  "income_mean_hh_avg": 14202.45387423002,
+  "expenditure_mean_hh_avg": 9049.531838832938,
+  "spending_power_rm_month": 183859916.00102317,
+  "econ_coverage": 1.0
+ },
+ {
+  "name": "Klang Valley 30 km box",
+  "population": 5679887.569581506,
+  "cells": 63419,
+  "matched_population": 5679887.569581506,
+  "population_weighted_rwi": 1.0776871665538077,
+  "wealth_coverage": 1.0,
+  "area_km2_ellipsoid": 896.0084530697956,
+  "geometry": {
+   "type": "Polygon",
+   "coordinates": [
+    [
+     [
+      101.55,
+      3.02
+     ],
+     [
+      101.82,
+      3.02
+     ],
+     [
+      101.82,
+      3.29
+     ],
+     [
+      101.55,
+      3.29
+     ],
+     [
+      101.55,
+      3.02
+     ]
+    ]
+   ]
+  },
+  "est_households": 1666564.7640562975,
+  "income_median_hh_avg": 11234.212088804621,
+  "income_mean_hh_avg": 14382.394765650284,
+  "expenditure_mean_hh_avg": 7983.720121472304,
+  "spending_power_rm_month": 13305386640.533005,
+  "econ_coverage": 1.0
+ },
+ {
+  "name": "Strait of Malacca (sea, expect 0 / No data)",
+  "population": 0.0,
+  "cells": 0,
+  "matched_population": 0.0,
+  "population_weighted_rwi": null,
+  "wealth_coverage": null,
+  "area_km2_ellipsoid": 122.96262316955375,
+  "geometry": {
+   "type": "Polygon",
+   "coordinates": [
+    [
+     [
+      100.9,
+      2.6
+     ],
+     [
+      101.0,
+      2.6
+     ],
+     [
+      101.0,
+      2.7
+     ],
+     [
+      100.9,
+      2.7
+     ],
+     [
+      100.9,
+      2.6
+     ]
+    ]
+   ]
+  }
+ }
+]

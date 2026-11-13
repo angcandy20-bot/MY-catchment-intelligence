@@ -1,0 +1,164 @@
+[
+ {
+  "kind": "real",
+  "name": "OpenStreetMap basemap tiles load (HTTP 200 PNG) with a valid Referer",
+  "pass": true,
+  "detail": "20 tiles 200 · Referer http://localhost:8080/ · Cache-Control \"max-age=96068, stale-while-revalidate=604800, stale-if-error=604800\" · status line: \"OpenStreetMap tiles loaded\""
+ },
+ {
+  "kind": "real",
+  "name": "OpenStreetMap attribution visible",
+  "pass": true,
+  "detail": "Leaflet | © OpenStreetMap contributors"
+ },
+ {
+  "kind": "real",
+  "name": "separate status lines for basemap, API and aggregation",
+  "pass": true,
+  "detail": "OpenStreetMap tiles loaded | No API key entered (manual polygons still work) | Ready · 1,930,406 population cells (2025 R2023A), 18,147 RWI samples"
+ },
+ {
+  "kind": "real",
+  "name": "population/RWI data manifest loads and aggregation is ready",
+  "pass": true,
+  "detail": "Ready · 1,930,406 population cells (2025 R2023A), 18,147 RWI samples"
+ },
+ {
+  "kind": "real-data",
+  "name": "Browser (worker) result equals independent raster check: KLCC 1 km box",
+  "pass": true,
+  "detail": "pop 16199 vs 16199, RWI 1.5582 vs 1.5582"
+ },
+ {
+  "kind": "real-data",
+  "name": "Browser (worker) result equals independent raster check: KL city centre with hole (KLCC park excluded)",
+  "pass": true,
+  "detail": "pop 147293 vs 147247, RWI 1.4883 vs 1.4884"
+ },
+ {
+  "kind": "real-data",
+  "name": "Browser (worker) result equals independent raster check: MultiPolygon: George Town + Johor Bahru centre",
+  "pass": true,
+  "detail": "pop 59420 vs 59420, RWI 1.0149 vs 1.0149"
+ },
+ {
+  "kind": "real-data",
+  "name": "household income & spending: areas loaded, KLCC catchment gets income + spending power, map layer draws",
+  "pass": true,
+  "detail": "HIES 2024: 613 areas (613 with income) · KLCC 1 km box: median HH income RM 10895, ~5070 households, spending power RM 46.00 M/month · main area P.120 Bukit Bintang, W.P. Kuala Lumpur"
+ },
+ {
+  "kind": "real",
+  "name": "GeoJSON import (Polygon with hole) → statistics shown",
+  "pass": true,
+  "detail": "Imported 1 feature (Polygon, 1 hole(s)) ·  147,293Population 1.488Pop-weighted RWI 100.0%Wealth coverage 12.39Area km² 11,889People per km² 147,293Matched population (≤ 3.0 km) RM 11,070Median household"
+ },
+ {
+  "kind": "real",
+  "name": "coordinate search \"lat, lon\" sets the store point",
+  "pass": true,
+  "detail": "Store point: 3.157900, 101.711600 (pasted coordinates)"
+ },
+ {
+  "kind": "real",
+  "name": "save, rename, reopen and compare catchments",
+  "pass": true,
+  "detail": "KML export contains innerBoundaryIs"
+ },
+ {
+  "kind": "real",
+  "name": "map buttons: \"Clear polygon\" removes the polygon; \"Clear map\" removes polygon, pin and overlays",
+  "pass": true,
+  "detail": "polygon cleared; map cleared (pin, overlays); saved catchments kept"
+ },
+ {
+  "kind": "real",
+  "name": "HeiGIT endpoint reachable from the browser; invalid key gives a clear message",
+  "pass": true,
+  "detail": "HTTP 403: { \"error\": \"Access to this API has been disallowed\" } → shown to users as the \"refused key / no Isochrones access\" message"
+ },
+ {
+  "kind": "real",
+  "name": "HeiGIT foot-walking endpoint reachable from the browser; invalid key gives a clear message",
+  "pass": true,
+  "detail": "HTTP 403: { \"error\": \"Access to this API has been disallowed\" }"
+ },
+ {
+  "kind": "simulated-api",
+  "name": "missing key message (no request sent)",
+  "pass": true,
+  "detail": "No API key entered (manual polygons still work)"
+ },
+ {
+  "kind": "simulated-api",
+  "name": "invalid key (401) message",
+  "pass": true,
+  "detail": "The API key was rejected (invalid or mistyped). Check it in your HeiGIT dashboard and paste it again. [HTTP 401]"
+ },
+ {
+  "kind": "simulated-api",
+  "name": "refused key / insufficient permissions (403) message",
+  "pass": true,
+  "detail": "HeiGIT refused this key (HTTP 403): either the key is invalid or mistyped, or it does not have access to the Isochrones service. Check the key and its Isochrones access in your HeiGIT dashboard. [HTTP 403]"
+ },
+ {
+  "kind": "simulated-api",
+  "name": "exhausted quota message",
+  "pass": true,
+  "detail": "The Isochrones quota for this key is used up. Check your remaining quota in the HeiGIT dashboard and try again after it resets. [HTTP 429]"
+ },
+ {
+  "kind": "simulated-api",
+  "name": "connection failure message",
+  "pass": true,
+  "detail": "Could not connect to the HeiGIT API (offline, blocked by a network filter, or the service is unreachable)."
+ },
+ {
+  "kind": "simulated-api",
+  "name": "arrival request: endpoint, [lon,lat], destination, range 600, interval 60, one call; minute switching makes no calls",
+  "pass": true,
+  "detail": "{\"locations\":[[101.7116,3.1579]],\"location_type\":\"destination\",\"range_type\":\"time\",\"range\":[600],\"interval\":60}"
+ },
+ {
+  "kind": "simulated-api",
+  "name": "departure request uses location_type \"start\" and is labelled FROM",
+  "pass": true,
+  "detail": "{\"locations\":[[101.7116,3.1579]],\"location_type\":\"start\",\"range_type\":\"time\",\"range\":[600],\"interval\":60}"
+ },
+ {
+  "kind": "simulated-api",
+  "name": "batch: N×10 rows in order, invalid row flagged, rate-limit pause, exports",
+  "pass": true,
+  "detail": "30 rows; 1 rate-limit pause; CSV/GeoJSON(20)/KML(20)/clipboard OK; status of KLCC 10 min: ok"
+ },
+ {
+  "kind": "simulated-api",
+  "name": "batch: stop, reload page, resume continues without repeating completed stores (cache)",
+  "pass": true,
+  "detail": "stopped after 1 store(s); resumed after reload; 4 completed API calls, none repeated (a request cancelled by Stop is re-sent once)"
+ },
+ {
+  "kind": "simulated-api",
+  "name": "walking 200 m (single): foot-walking request, one area, stats, labelled, exports",
+  "pass": true,
+  "detail": "{\"locations\":[[101.713,3.149]],\"location_type\":\"start\",\"range_type\":\"distance\",\"range\":[200]} · area 0.0793 km² · population 940"
+ },
+ {
+  "kind": "simulated-api",
+  "name": "walking batch: 7 buildings (1 invalid) → 2 requests of ≤5 locations, 7 rows in order, exports",
+  "pass": true,
+  "detail": "1 request(s) with 5 locations (W1 reused from cache); 7 rows; GeoJSON/KML 6 areas"
+ },
+ {
+  "kind": "simulated-api",
+  "name": "API key is not stored in localStorage, sessionStorage, IndexedDB or cookies",
+  "pass": true,
+  "detail": "not found in any storage"
+ },
+ {
+  "kind": "real",
+  "name": "no uncaught page errors",
+  "pass": true,
+  "detail": "none"
+ }
+]

@@ -1,0 +1,110 @@
+[
+ {
+  "kind": "real-data",
+  "name": "Independent raster check: KLCC 1 km box",
+  "pass": true,
+  "detail": "population JS 16199 vs raster 16199 (Δ 0.000%); RWI JS 1.5582 vs 1.5582; coverage 1.0000 vs 1.0000; area 0.996 vs 0.996 km²; median HH income RM 10895 vs 10895; spending power RM 45995184 vs 45995184 (max Δ 0.000%)",
+  "js": {
+   "population": 16199.427836894989,
+   "rwi": 1.5582270832991483,
+   "coverage": 1,
+   "area": 0.9955613010865555
+  },
+  "python": {
+   "population": 16199.427836894989,
+   "rwi": 1.5582271104381338,
+   "coverage": 1,
+   "area": 0.9955613031360507
+  }
+ },
+ {
+  "kind": "real-data",
+  "name": "Independent raster check: KL city centre with hole (KLCC park excluded)",
+  "pass": true,
+  "detail": "population JS 147293 vs raster 147247 (Δ 0.031%); RWI JS 1.4883 vs 1.4884; coverage 1.0000 vs 1.0000; area 12.389 vs 12.389 km²; median HH income RM 11070 vs 11069; spending power RM 418480696 vs 418312334 (max Δ 0.040%)",
+  "js": {
+   "population": 147293.0193122942,
+   "rwi": 1.4883110782394275,
+   "coverage": 1,
+   "area": 12.38924082924531
+  },
+  "python": {
+   "population": 147247.2859214861,
+   "rwi": 1.4883736313389389,
+   "coverage": 1,
+   "area": 12.389241228952706
+  }
+ },
+ {
+  "kind": "real-data",
+  "name": "Independent raster check: MultiPolygon: George Town + Johor Bahru centre",
+  "pass": true,
+  "detail": "population JS 59420 vs raster 59420 (Δ 0.000%); RWI JS 1.0149 vs 1.0149; coverage 1.0000 vs 1.0000; area 16.889 vs 16.889 km²; median HH income RM 9702 vs 9702; spending power RM 121321880 vs 121321880 (max Δ 0.000%)",
+  "js": {
+   "population": 59419.61753028445,
+   "rwi": 1.0148895627874726,
+   "coverage": 1,
+   "area": 16.8885771642536
+  },
+  "python": {
+   "population": 59419.61753028445,
+   "rwi": 1.0148895378053682,
+   "coverage": 1,
+   "area": 16.88857749518895
+  }
+ },
+ {
+  "kind": "real-data",
+  "name": "Independent raster check: Putrajaya concave",
+  "pass": true,
+  "detail": "population JS 70450 vs raster 70465 (Δ 0.022%); RWI JS 0.7453 vs 0.7453; coverage 1.0000 vs 1.0000; area 27.660 vs 27.660 km²; median HH income RM 10812 vs 10812; spending power RM 183818662 vs 183859916 (max Δ 0.022%)",
+  "js": {
+   "population": 70449.58566841902,
+   "rwi": 0.7453120426074625,
+   "coverage": 1,
+   "area": 27.660293424434368
+  },
+  "python": {
+   "population": 70465.11064896407,
+   "rwi": 0.7453441522601828,
+   "coverage": 1,
+   "area": 27.66033540471816
+  }
+ },
+ {
+  "kind": "real-data",
+  "name": "Independent raster check: Klang Valley 30 km box",
+  "pass": true,
+  "detail": "population JS 5679888 vs raster 5679888 (Δ 0.000%); RWI JS 1.0777 vs 1.0777; coverage 1.0000 vs 1.0000; area 896.007 vs 896.008 km²; median HH income RM 11234 vs 11234; spending power RM 13305386641 vs 13305386641 (max Δ 0.000%)",
+  "js": {
+   "population": 5679887.569581506,
+   "rwi": 1.0776871692260608,
+   "coverage": 1,
+   "area": 896.0067989297559
+  },
+  "python": {
+   "population": 5679887.569581506,
+   "rwi": 1.0776871665538077,
+   "coverage": 1,
+   "area": 896.0084530697956
+  }
+ },
+ {
+  "kind": "real-data",
+  "name": "Independent raster check: Strait of Malacca (sea, expect 0 / No data)",
+  "pass": true,
+  "detail": "population JS 0 vs raster 0 (Δ 0.000%); RWI JS No data vs No data; coverage No data vs No data; area 122.963 vs 122.963 km²; median HH income RM No data vs No data; spending power RM No data vs No data (max Δ 0.000%)",
+  "js": {
+   "population": 0,
+   "rwi": null,
+   "coverage": null,
+   "area": 122.96259194651792
+  },
+  "python": {
+   "population": 0,
+   "rwi": null,
+   "coverage": null,
+   "area": 122.96262316955375
+  }
+ }
+]

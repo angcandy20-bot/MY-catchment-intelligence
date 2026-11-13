@@ -1,0 +1,207 @@
+[
+ {
+  "kind": "synthetic-data",
+  "name": "aggregation square_crossing_tile_corner @3000 m matches independent brute force",
+  "pass": true
+ },
+ {
+  "kind": "synthetic-data",
+  "name": "aggregation square_crossing_tile_corner @1000 m matches independent brute force",
+  "pass": true
+ },
+ {
+  "kind": "synthetic-data",
+  "name": "aggregation polygon_with_two_holes @3000 m matches independent brute force",
+  "pass": true
+ },
+ {
+  "kind": "synthetic-data",
+  "name": "aggregation polygon_with_two_holes @1000 m matches independent brute force",
+  "pass": true
+ },
+ {
+  "kind": "synthetic-data",
+  "name": "aggregation multipolygon_two_parts @3000 m matches independent brute force",
+  "pass": true
+ },
+ {
+  "kind": "synthetic-data",
+  "name": "aggregation multipolygon_two_parts @1000 m matches independent brute force",
+  "pass": true
+ },
+ {
+  "kind": "synthetic-data",
+  "name": "aggregation concave_star @3000 m matches independent brute force",
+  "pass": true
+ },
+ {
+  "kind": "synthetic-data",
+  "name": "aggregation concave_star @1000 m matches independent brute force",
+  "pass": true
+ },
+ {
+  "kind": "synthetic-data",
+  "name": "aggregation outside_rwi_area_unmatched @3000 m matches independent brute force",
+  "pass": true
+ },
+ {
+  "kind": "synthetic-data",
+  "name": "aggregation outside_rwi_area_unmatched @1000 m matches independent brute force",
+  "pass": true
+ },
+ {
+  "kind": "synthetic-data",
+  "name": "aggregation empty_sea_polygon @3000 m matches independent brute force",
+  "pass": true
+ },
+ {
+  "kind": "synthetic-data",
+  "name": "aggregation empty_sea_polygon @1000 m matches independent brute force",
+  "pass": true
+ },
+ {
+  "kind": "unit",
+  "name": "unmatched cells count in population but not RWI (coverage < 1)",
+  "pass": true
+ },
+ {
+  "kind": "unit",
+  "name": "ellipsoidal area of 0.01° square at equator ≈ 1.23092 km² (a·Δλ × M·Δφ)",
+  "pass": true
+ },
+ {
+  "kind": "unit",
+  "name": "area subtracts holes",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "request uses api.heigit.org endpoint, [lon,lat] order, destination, 600/60",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "FROM direction uses location_type \"start\"",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "contours returned out of order are sorted 1..10",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "missing key → missing_key (no request made)",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "401 → invalid_key",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "403 → forbidden (insufficient permissions)",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "403 with quota message → quota_exhausted",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "429 short reset → rate_limited with wait",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "429 quota message → quota_exhausted",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "500 → server_error",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "400/404 routing error → bad_request",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "network failure → network",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "only 9 contours → incomplete",
+  "pass": true
+ },
+ {
+  "kind": "unit",
+  "name": "lat,lon parsing incl. swapped detection",
+  "pass": true
+ },
+ {
+  "kind": "unit",
+  "name": "store table parsing (CSV, TSV from Excel, quoted names, invalid rows)",
+  "pass": true
+ },
+ {
+  "kind": "unit",
+  "name": "GeoJSON import: Polygon with hole, MultiPolygon, unclosed ring, non-polygon skipped",
+  "pass": true
+ },
+ {
+  "kind": "unit",
+  "name": "KML has outer + inner boundaries and MultiGeometry; CSV escapes",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "batch: N×10 rows, store order kept, minutes 1..10, invalid row flagged",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "batch: stop then resume continues from saved index without repeating calls",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "batch: rate limit pauses for advised time (no rapid retries), then continues",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "batch: exhausted quota halts and keeps resume point",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "batch: per-store API failure marks 10 failed rows and continues",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "walking: foot-walking endpoint, [lon,lat] order, start, distance 200, up to 5 locations, group_index mapping",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "walking: a missing location in the response is reported, not filled",
+  "pass": true
+ },
+ {
+  "kind": "simulated-api",
+  "name": "walking batch: one row per building, order kept, walk columns, invalid flagged",
+  "pass": true
+ },
+ {
+  "kind": "unit",
+  "name": "income/spending: missing area values give \"No data\", not zero; MCT1 tiles still parse",
+  "pass": true
+ }
+]

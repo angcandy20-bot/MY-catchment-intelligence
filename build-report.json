@@ -1,0 +1,480 @@
+{
+ "build": "8bb9689d",
+ "generated_at": "2026-11-13T08:55:12.466Z",
+ "legend": {
+  "simulated-api": "HeiGIT responses mocked; checks request shape, UI and batch logic only",
+  "real": "real network (OSM tiles, data files, live HeiGIT endpoint probe)",
+  "real-api": "real HeiGIT isochrone calls (needs HEIGIT_API_KEY secret)",
+  "real-data": "calculation on the real HDX data vs independent raster check",
+  "synthetic-data": "calculation on generated test data vs brute force",
+  "unit": "unit tests"
+ },
+ "summary": {
+  "synthetic-data": {
+   "pass": 12,
+   "fail": 0
+  },
+  "unit": {
+   "pass": 8,
+   "fail": 0
+  },
+  "simulated-api": {
+   "pass": 33,
+   "fail": 0
+  },
+  "real-data": {
+   "pass": 10,
+   "fail": 0
+  },
+  "real": {
+   "pass": 11,
+   "fail": 0
+  }
+ },
+ "checks": [
+  {
+   "kind": "synthetic-data",
+   "name": "aggregation square_crossing_tile_corner @3000 m matches independent brute force",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "synthetic-data",
+   "name": "aggregation square_crossing_tile_corner @1000 m matches independent brute force",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "synthetic-data",
+   "name": "aggregation polygon_with_two_holes @3000 m matches independent brute force",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "synthetic-data",
+   "name": "aggregation polygon_with_two_holes @1000 m matches independent brute force",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "synthetic-data",
+   "name": "aggregation multipolygon_two_parts @3000 m matches independent brute force",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "synthetic-data",
+   "name": "aggregation multipolygon_two_parts @1000 m matches independent brute force",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "synthetic-data",
+   "name": "aggregation concave_star @3000 m matches independent brute force",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "synthetic-data",
+   "name": "aggregation concave_star @1000 m matches independent brute force",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "synthetic-data",
+   "name": "aggregation outside_rwi_area_unmatched @3000 m matches independent brute force",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "synthetic-data",
+   "name": "aggregation outside_rwi_area_unmatched @1000 m matches independent brute force",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "synthetic-data",
+   "name": "aggregation empty_sea_polygon @3000 m matches independent brute force",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "synthetic-data",
+   "name": "aggregation empty_sea_polygon @1000 m matches independent brute force",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "unit",
+   "name": "unmatched cells count in population but not RWI (coverage < 1)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "unit",
+   "name": "ellipsoidal area of 0.01° square at equator ≈ 1.23092 km² (a·Δλ × M·Δφ)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "unit",
+   "name": "area subtracts holes",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "request uses api.heigit.org endpoint, [lon,lat] order, destination, 600/60",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "FROM direction uses location_type \"start\"",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "contours returned out of order are sorted 1..10",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "missing key → missing_key (no request made)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "401 → invalid_key",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "403 → forbidden (insufficient permissions)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "403 with quota message → quota_exhausted",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "429 short reset → rate_limited with wait",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "429 quota message → quota_exhausted",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "500 → server_error",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "400/404 routing error → bad_request",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "network failure → network",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "only 9 contours → incomplete",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "unit",
+   "name": "lat,lon parsing incl. swapped detection",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "unit",
+   "name": "store table parsing (CSV, TSV from Excel, quoted names, invalid rows)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "unit",
+   "name": "GeoJSON import: Polygon with hole, MultiPolygon, unclosed ring, non-polygon skipped",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "unit",
+   "name": "KML has outer + inner boundaries and MultiGeometry; CSV escapes",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "batch: N×10 rows, store order kept, minutes 1..10, invalid row flagged",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "batch: stop then resume continues from saved index without repeating calls",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "batch: rate limit pauses for advised time (no rapid retries), then continues",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "batch: exhausted quota halts and keeps resume point",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "batch: per-store API failure marks 10 failed rows and continues",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "walking: foot-walking endpoint, [lon,lat] order, start, distance 200, up to 5 locations, group_index mapping",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "walking: a missing location in the response is reported, not filled",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "simulated-api",
+   "name": "walking batch: one row per building, order kept, walk columns, invalid flagged",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "unit",
+   "name": "income/spending: missing area values give \"No data\", not zero; MCT1 tiles still parse",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "kind": "real-data",
+   "name": "Independent raster check: KLCC 1 km box",
+   "pass": true,
+   "detail": "population JS 16199 vs raster 16199 (Δ 0.000%); RWI JS 1.5582 vs 1.5582; coverage 1.0000 vs 1.0000; area 0.996 vs 0.996 km²; median HH income RM 10895 vs 10895; spending power RM 45995184 vs 45995184 (max Δ 0.000%)"
+  },
+  {
+   "kind": "real-data",
+   "name": "Independent raster check: KL city centre with hole (KLCC park excluded)",
+   "pass": true,
+   "detail": "population JS 147293 vs raster 147247 (Δ 0.031%); RWI JS 1.4883 vs 1.4884; coverage 1.0000 vs 1.0000; area 12.389 vs 12.389 km²; median HH income RM 11070 vs 11069; spending power RM 418480696 vs 418312334 (max Δ 0.040%)"
+  },
+  {
+   "kind": "real-data",
+   "name": "Independent raster check: MultiPolygon: George Town + Johor Bahru centre",
+   "pass": true,
+   "detail": "population JS 59420 vs raster 59420 (Δ 0.000%); RWI JS 1.0149 vs 1.0149; coverage 1.0000 vs 1.0000; area 16.889 vs 16.889 km²; median HH income RM 9702 vs 9702; spending power RM 121321880 vs 121321880 (max Δ 0.000%)"
+  },
+  {
+   "kind": "real-data",
+   "name": "Independent raster check: Putrajaya concave",
+   "pass": true,
+   "detail": "population JS 70450 vs raster 70465 (Δ 0.022%); RWI JS 0.7453 vs 0.7453; coverage 1.0000 vs 1.0000; area 27.660 vs 27.660 km²; median HH income RM 10812 vs 10812; spending power RM 183818662 vs 183859916 (max Δ 0.022%)"
+  },
+  {
+   "kind": "real-data",
+   "name": "Independent raster check: Klang Valley 30 km box",
+   "pass": true,
+   "detail": "population JS 5679888 vs raster 5679888 (Δ 0.000%); RWI JS 1.0777 vs 1.0777; coverage 1.0000 vs 1.0000; area 896.007 vs 896.008 km²; median HH income RM 11234 vs 11234; spending power RM 13305386641 vs 13305386641 (max Δ 0.000%)"
+  },
+  {
+   "kind": "real-data",
+   "name": "Independent raster check: Strait of Malacca (sea, expect 0 / No data)",
+   "pass": true,
+   "detail": "population JS 0 vs raster 0 (Δ 0.000%); RWI JS No data vs No data; coverage No data vs No data; area 122.963 vs 122.963 km²; median HH income RM No data vs No data; spending power RM No data vs No data (max Δ 0.000%)"
+  },
+  {
+   "kind": "real",
+   "name": "OpenStreetMap basemap tiles load (HTTP 200 PNG) with a valid Referer",
+   "pass": true,
+   "detail": "20 tiles 200 · Referer http://localhost:8080/ · Cache-Control \"max-age=96068, stale-while-revalidate=604800, stale-if-error=604800\" · status line: \"OpenStreetMap tiles loaded\""
+  },
+  {
+   "kind": "real",
+   "name": "OpenStreetMap attribution visible",
+   "pass": true,
+   "detail": "Leaflet | © OpenStreetMap contributors"
+  },
+  {
+   "kind": "real",
+   "name": "separate status lines for basemap, API and aggregation",
+   "pass": true,
+   "detail": "OpenStreetMap tiles loaded | No API key entered (manual polygons still work) | Ready · 1,930,406 population cells (2025 R2023A), 18,147 RWI samples"
+  },
+  {
+   "kind": "real",
+   "name": "population/RWI data manifest loads and aggregation is ready",
+   "pass": true,
+   "detail": "Ready · 1,930,406 population cells (2025 R2023A), 18,147 RWI samples"
+  },
+  {
+   "kind": "real-data",
+   "name": "Browser (worker) result equals independent raster check: KLCC 1 km box",
+   "pass": true,
+   "detail": "pop 16199 vs 16199, RWI 1.5582 vs 1.5582"
+  },
+  {
+   "kind": "real-data",
+   "name": "Browser (worker) result equals independent raster check: KL city centre with hole (KLCC park excluded)",
+   "pass": true,
+   "detail": "pop 147293 vs 147247, RWI 1.4883 vs 1.4884"
+  },
+  {
+   "kind": "real-data",
+   "name": "Browser (worker) result equals independent raster check: MultiPolygon: George Town + Johor Bahru centre",
+   "pass": true,
+   "detail": "pop 59420 vs 59420, RWI 1.0149 vs 1.0149"
+  },
+  {
+   "kind": "real-data",
+   "name": "household income & spending: areas loaded, KLCC catchment gets income + spending power, map layer draws",
+   "pass": true,
+   "detail": "HIES 2024: 613 areas (613 with income) · KLCC 1 km box: median HH income RM 10895, ~5070 households, spending power RM 46.00 M/month · main area P.120 Bukit Bintang, W.P. Kuala Lumpur"
+  },
+  {
+   "kind": "real",
+   "name": "GeoJSON import (Polygon with hole) → statistics shown",
+   "pass": true,
+   "detail": "Imported 1 feature (Polygon, 1 hole(s)) ·  147,293Population 1.488Pop-weighted RWI 100.0%Wealth coverage 12.39Area km² 11,889People per km² 147,293Matched population (≤ 3.0 km) RM 11,070Median household"
+  },
+  {
+   "kind": "real",
+   "name": "coordinate search \"lat, lon\" sets the store point",
+   "pass": true,
+   "detail": "Store point: 3.157900, 101.711600 (pasted coordinates)"
+  },
+  {
+   "kind": "real",
+   "name": "save, rename, reopen and compare catchments",
+   "pass": true,
+   "detail": "KML export contains innerBoundaryIs"
+  },
+  {
+   "kind": "real",
+   "name": "map buttons: \"Clear polygon\" removes the polygon; \"Clear map\" removes polygon, pin and overlays",
+   "pass": true,
+   "detail": "polygon cleared; map cleared (pin, overlays); saved catchments kept"
+  },
+  {
+   "kind": "real",
+   "name": "HeiGIT endpoint reachable from the browser; invalid key gives a clear message",
+   "pass": true,
+   "detail": "HTTP 403: { \"error\": \"Access to this API has been disallowed\" } → shown to users as the \"refused key / no Isochrones access\" message"
+  },
+  {
+   "kind": "real",
+   "name": "HeiGIT foot-walking endpoint reachable from the browser; invalid key gives a clear message",
+   "pass": true,
+   "detail": "HTTP 403: { \"error\": \"Access to this API has been disallowed\" }"
+  },
+  {
+   "kind": "simulated-api",
+   "name": "missing key message (no request sent)",
+   "pass": true,
+   "detail": "No API key entered (manual polygons still work)"
+  },
+  {
+   "kind": "simulated-api",
+   "name": "invalid key (401) message",
+   "pass": true,
+   "detail": "The API key was rejected (invalid or mistyped). Check it in your HeiGIT dashboard and paste it again. [HTTP 401]"
+  },
+  {
+   "kind": "simulated-api",
+   "name": "refused key / insufficient permissions (403) message",
+   "pass": true,
+   "detail": "HeiGIT refused this key (HTTP 403): either the key is invalid or mistyped, or it does not have access to the Isochrones service. Check the key and its Isochrones access in your HeiGIT dashboard. [HTTP 403]"
+  },
+  {
+   "kind": "simulated-api",
+   "name": "exhausted quota message",
+   "pass": true,
+   "detail": "The Isochrones quota for this key is used up. Check your remaining quota in the HeiGIT dashboard and try again after it resets. [HTTP 429]"
+  },
+  {
+   "kind": "simulated-api",
+   "name": "connection failure message",
+   "pass": true,
+   "detail": "Could not connect to the HeiGIT API (offline, blocked by a network filter, or the service is unreachable)."
+  },
+  {
+   "kind": "simulated-api",
+   "name": "arrival request: endpoint, [lon,lat], destination, range 600, interval 60, one call; minute switching makes no calls",
+   "pass": true,
+   "detail": "{\"locations\":[[101.7116,3.1579]],\"location_type\":\"destination\",\"range_type\":\"time\",\"range\":[600],\"interval\":60}"
+  },
+  {
+   "kind": "simulated-api",
+   "name": "departure request uses location_type \"start\" and is labelled FROM",
+   "pass": true,
+   "detail": "{\"locations\":[[101.7116,3.1579]],\"location_type\":\"start\",\"range_type\":\"time\",\"range\":[600],\"interval\":60}"
+  },
+  {
+   "kind": "simulated-api",
+   "name": "batch: N×10 rows in order, invalid row flagged, rate-limit pause, exports",
+   "pass": true,
+   "detail": "30 rows; 1 rate-limit pause; CSV/GeoJSON(20)/KML(20)/clipboard OK; status of KLCC 10 min: ok"
+  },
+  {
+   "kind": "simulated-api",
+   "name": "batch: stop, reload page, resume continues without repeating completed stores (cache)",
+   "pass": true,
+   "detail": "stopped after 1 store(s); resumed after reload; 4 completed API calls, none repeated (a request cancelled by Stop is re-sent once)"
+  },
+  {
+   "kind": "simulated-api",
+   "name": "walking 200 m (single): foot-walking request, one area, stats, labelled, exports",
+   "pass": true,
+   "detail": "{\"locations\":[[101.713,3.149]],\"location_type\":\"start\",\"range_type\":\"distance\",\"range\":[200]} · area 0.0793 km² · population 940"
+  },
+  {
+   "kind": "simulated-api",
+   "name": "walking batch: 7 buildings (1 invalid) → 2 requests of ≤5 locations, 7 rows in order, exports",
+   "pass": true,
+   "detail": "1 request(s) with 5 locations (W1 reused from cache); 7 rows; GeoJSON/KML 6 areas"
+  },
+  {
+   "kind": "simulated-api",
+   "name": "API key is not stored in localStorage, sessionStorage, IndexedDB or cookies",
+   "pass": true,
+   "detail": "not found in any storage"
+  },
+  {
+   "kind": "real",
+   "name": "no uncaught page errors",
+   "pass": true,
+   "detail": "none"
+  }
+ ]
+}
