@@ -1,0 +1,92 @@
+[
+ {
+  "kind": "real",
+  "name": "OpenStreetMap basemap tiles load (HTTP 200 PNG) with a valid Referer",
+  "pass": true,
+  "detail": "20 tiles 200 · Referer https://angcandy20-bot.github.io/ · Cache-Control \"max-age=93307, stale-while-revalidate=604800, stale-if-error=604800\" · status line: \"OpenStreetMap tiles loaded\""
+ },
+ {
+  "kind": "real",
+  "name": "OpenStreetMap attribution visible",
+  "pass": true,
+  "detail": "Leaflet | © OpenStreetMap contributors"
+ },
+ {
+  "kind": "real",
+  "name": "separate status lines for basemap, API and aggregation",
+  "pass": true,
+  "detail": "OpenStreetMap tiles loaded | No API key entered (manual polygons still work) | Ready · 1,930,406 population cells (2025 R2023A), 18,147 RWI samples"
+ },
+ {
+  "kind": "real",
+  "name": "population/RWI data manifest loads and aggregation is ready",
+  "pass": true,
+  "detail": "Ready · 1,930,406 population cells (2025 R2023A), 18,147 RWI samples"
+ },
+ {
+  "kind": "real-data",
+  "name": "Browser (worker) result equals independent raster check: KLCC 1 km box",
+  "pass": true,
+  "detail": "pop 16199 vs 16199, RWI 1.5582 vs 1.5582"
+ },
+ {
+  "kind": "real-data",
+  "name": "Browser (worker) result equals independent raster check: KL city centre with hole (KLCC park excluded)",
+  "pass": true,
+  "detail": "pop 147293 vs 147247, RWI 1.4883 vs 1.4884"
+ },
+ {
+  "kind": "real-data",
+  "name": "Browser (worker) result equals independent raster check: MultiPolygon: George Town + Johor Bahru centre",
+  "pass": true,
+  "detail": "pop 59420 vs 59420, RWI 1.0149 vs 1.0149"
+ },
+ {
+  "kind": "real-data",
+  "name": "household income & spending: areas loaded, KLCC catchment gets income + spending power, map layer draws",
+  "pass": true,
+  "detail": "HIES 2024: 613 areas (613 with income) · KLCC 1 km box: median HH income RM 10895, ~5070 households, spending power RM 46.00 M/month · main area P.120 Bukit Bintang, W.P. Kuala Lumpur"
+ },
+ {
+  "kind": "real",
+  "name": "GeoJSON import (Polygon with hole) → statistics shown",
+  "pass": true,
+  "detail": "Imported 1 feature (Polygon, 1 hole(s)) ·  147,293Population 1.488Pop-weighted RWI 100.0%Wealth coverage 12.39Area km² 11,889People per km² 147,293Matched population (≤ 3.0 km) RM 11,070Median household"
+ },
+ {
+  "kind": "real",
+  "name": "coordinate search \"lat, lon\" sets the store point",
+  "pass": true,
+  "detail": "Store point: 3.157900, 101.711600 (pasted coordinates)"
+ },
+ {
+  "kind": "real",
+  "name": "save, rename, reopen and compare catchments",
+  "pass": true,
+  "detail": "KML export contains innerBoundaryIs"
+ },
+ {
+  "kind": "real",
+  "name": "map buttons: \"Clear polygon\" removes the polygon; \"Clear map\" removes polygon, pin and overlays",
+  "pass": true,
+  "detail": "polygon cleared; map cleared (pin, overlays); saved catchments kept"
+ },
+ {
+  "kind": "real",
+  "name": "HeiGIT endpoint reachable from the browser; invalid key gives a clear message",
+  "pass": true,
+  "detail": "HTTP 403: { \"error\": \"Access to this API has been disallowed\" } → shown to users as the \"refused key / no Isochrones access\" message"
+ },
+ {
+  "kind": "real",
+  "name": "HeiGIT foot-walking endpoint reachable from the browser; invalid key gives a clear message",
+  "pass": true,
+  "detail": "HTTP 403: { \"error\": \"Access to this API has been disallowed\" }"
+ },
+ {
+  "kind": "real",
+  "name": "no uncaught page errors",
+  "pass": true,
+  "detail": "none"
+ }
+]
