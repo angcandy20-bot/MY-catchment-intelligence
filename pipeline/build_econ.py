@@ -129,6 +129,13 @@ def build_econ(work, out, lon, lat, report):
     hy = max(years)
     hs = (pop[pop.date == hy].set_index("state")["population"] / hh[hh.date == hy].set_index("state")["households"]).dropna()
     hs.index = [norm_state(s) for s in hs.index]
+    # DOSM population_state is published in thousands ('000) while hh_profile_state counts households:
+    # detect the scale from the ratio instead of assuming it, and record it.
+    med = float(hs.median()); scale = 1.0
+    if med < 0.02: scale = 1000.0
+    elif med > 2000: scale = 0.001
+    hs = hs * scale
+    rep["household_size_unit_fix"] = f"population x {scale:g} (raw median ratio {med:.5f})"
     rep["household_size_year"] = int(hy.year); rep["household_size_by_state"] = {k: round(float(v), 3) for k, v in hs.items()}
     if not hs.between(2.0, 7.0).all():
         raise RuntimeError(f"Implausible household sizes (unit mismatch?): {hs.to_dict()}")
