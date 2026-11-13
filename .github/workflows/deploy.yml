@@ -24,7 +24,7 @@ jobs:
         with: { node-version: '20' }
 
       - name: Install Python dependencies
-        run: pip install numpy pandas scipy requests rasterio pyproj shapely scikit-learn matplotlib
+        run: pip install numpy pandas scipy requests rasterio pyproj shapely scikit-learn matplotlib geopandas pyarrow
 
       - name: Restore downloaded HDX files
         uses: actions/cache@v4
@@ -40,7 +40,9 @@ jobs:
         run: |
           POP=$(python -c "import json;print(json.load(open('work/paths.json'))['population'])")
           RWI=$(python -c "import json;print(json.load(open('work/paths.json'))['rwi'])")
-          python pipeline/check_samples.py "$POP" "$RWI" tests/real_samples.geojson work/py_check.json
+          AF=$(python -c "import json;print(json.load(open('work/paths.json'))['areas_full'])")
+          AJ=$(python -c "import json;print(json.load(open('work/paths.json'))['areas_json'])")
+          python pipeline/check_samples.py "$POP" "$RWI" tests/real_samples.geojson work/py_check.json "$AF" "$AJ"
 
       - name: Compare dashboard calculation with independent check
         run: node tests/check_real.mjs site/data work/py_check.json work/check_real.json

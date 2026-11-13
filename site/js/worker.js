@@ -1,7 +1,7 @@
 // Background aggregation worker: loads population tiles on demand (cached) and sums them per polygon.
 import { parseTile, aggregateGeometry } from './core/aggregate.js';
 
-let manifest = null, base = '';
+let manifest = null, base = '', areas = null;
 const cache = new Map(); // tile id -> parsed tile (LRU by insertion order)
 let cachedBytes = 0;
 const MAX_BYTES = 400e6;
@@ -20,7 +20,7 @@ self.onmessage = async (ev) => {
   const m = ev.data;
   try {
     if (m.type === 'init') {
-      base = m.base; manifest = m.manifest;
+      base = m.base; manifest = m.manifest; areas = m.areas || null;
       self.postMessage({ id: m.id, ok: true });
     } else if (m.type === 'aggregate') {
       if (!manifest) throw new Error('Population data not loaded');
@@ -28,7 +28,7 @@ self.onmessage = async (ev) => {
       for (let k = 0; k < m.geometries.length; k++) {
         const st = await aggregateGeometry(m.geometries[k], manifest, loadTile, m.maxDistM, (i, n) => {
           self.postMessage({ id: m.id, progress: { geometry: k + 1, geometries: m.geometries.length, tile: i, tiles: n } });
-        });
+        }, areas);
         out.push(st);
       }
       self.postMessage({ id: m.id, ok: true, result: out });

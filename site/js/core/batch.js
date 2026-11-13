@@ -1,11 +1,13 @@
 // Batch store analysis engine. DOM-free; all I/O is injected so it can be tested with mocks.
 import { MINUTES } from './heigit.js';
 
+export const ECON_COLUMNS = ['household_income_median_rm', 'household_income_mean_rm', 'household_spending_mean_rm',
+  'est_households', 'spending_power_rm_month'];
 export const BATCH_COLUMNS = ['name', 'latitude', 'longitude', 'minutes', 'direction', 'population',
-  'population_weighted_rwi', 'wealth_coverage', 'area_km2', 'population_density', 'status'];
+  'population_weighted_rwi', 'wealth_coverage', 'area_km2', 'population_density', ...ECON_COLUMNS, 'status'];
 
 export const WALK_COLUMNS = ['name', 'latitude', 'longitude', 'walk_distance_m', 'population',
-  'population_weighted_rwi', 'wealth_coverage', 'area_km2', 'population_density', 'status'];
+  'population_weighted_rwi', 'wealth_coverage', 'area_km2', 'population_density', ...ECON_COLUMNS, 'status'];
 export const columnsFor = job => (job && job.mode === 'walk' ? WALK_COLUMNS : BATCH_COLUMNS);
 
 export const DIRECTION_VALUE = { to: 'to_store (arrival)', from: 'from_store (departure)' };
@@ -17,11 +19,7 @@ export function statRow(store, minutes, direction, stats, status) {
   return {
     name: store.name, latitude: store.latitude, longitude: store.longitude, minutes,
     direction: DIRECTION_VALUE[direction],
-    population: stats ? r(stats.population, 1) : '',
-    population_weighted_rwi: stats ? (stats.population_weighted_rwi === null ? 'No data' : r(stats.population_weighted_rwi, 4)) : '',
-    wealth_coverage: stats ? (stats.wealth_coverage === null ? 'No data' : r(stats.wealth_coverage, 4)) : '',
-    area_km2: stats ? r(stats.area_km2, 4) : '',
-    population_density: stats ? (stats.population_density === null ? 'No data' : r(stats.population_density, 1)) : '',
+    ...statFields(stats),
     status,
   };
 }
@@ -32,6 +30,17 @@ function statFields(stats) {
     wealth_coverage: stats ? (stats.wealth_coverage === null ? 'No data' : r(stats.wealth_coverage, 4)) : '',
     area_km2: stats ? r(stats.area_km2, 4) : '',
     population_density: stats ? (stats.population_density === null ? 'No data' : r(stats.population_density, 1)) : '',
+    ...econFields(stats),
+  };
+}
+export function econFields(stats) {
+  const v = (x, d = 0) => (!stats ? '' : x === null || x === undefined ? 'No data' : r(x, d));
+  return {
+    household_income_median_rm: v(stats && stats.income_median_hh_avg),
+    household_income_mean_rm: v(stats && stats.income_mean_hh_avg),
+    household_spending_mean_rm: v(stats && stats.expenditure_mean_hh_avg),
+    est_households: v(stats && stats.est_households),
+    spending_power_rm_month: v(stats && stats.spending_power_rm_month),
   };
 }
 export function walkRow(store, walkM, stats, status) {

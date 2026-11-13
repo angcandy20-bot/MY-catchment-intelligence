@@ -76,6 +76,19 @@ if (PYCHECK && fs.existsSync(PYCHECK)) {
   }
 }
 
+await test('real-data', 'household income & spending: areas loaded, KLCC catchment gets income + spending power, map layer draws', async () => {
+  const e = await page.evaluate(() => { const x = window.__mci.getEcon(); return x && { year: x.year, n: x.areas.length, withIncome: x.areas.filter(a => a.income_median != null).length }; });
+  assert(e && e.n >= 600, 'areas not loaded: ' + JSON.stringify(e));
+  const [st] = await page.evaluate(g => window.__mci.aggregateMany([g], 'e2e econ', 3000), { type: 'Polygon', coordinates: [[[101.7071, 3.1534], [101.7161, 3.1534], [101.7161, 3.1624], [101.7071, 3.1624], [101.7071, 3.1534]]] });
+  assert(st.income_median_hh_avg > 3000 && st.income_median_hh_avg < 30000, 'median income ' + st.income_median_hh_avg);
+  assert(st.spending_power_rm_month > 0 && st.est_households > 0, 'spending power');
+  await page.selectOption('#econSel', 'income_median');
+  await page.waitForFunction(() => window.__mci.hasEconLayer(), null, { timeout: 30000 });
+  const leg = await page.textContent('#econLegend'); assert(/Median household income/.test(leg), leg);
+  await page.selectOption('#econSel', '');
+  return `HIES ${e.year}: ${e.n} areas (${e.withIncome} with income) · KLCC 1 km box: median HH income RM ${st.income_median_hh_avg.toFixed(0)}, ~${st.est_households.toFixed(0)} households, spending power RM ${(st.spending_power_rm_month / 1e6).toFixed(2)} M/month · main area ${st.econ_main_area}`;
+});
+
 // ---- GeoJSON import with a hole (UI path)
 await test(MODE === 'live' ? 'real' : 'real', 'GeoJSON import (Polygon with hole) → statistics shown', async () => {
   const f = path.join(tmp, 'hole.geojson');
@@ -254,7 +267,7 @@ if (MODE === 'local') {
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#batchCsv')]);
     const csv = fs.readFileSync(await dl.path(), 'utf8').trim().split(/\r?\n/);
     assert(csv.length === 31, 'csv lines ' + csv.length);
-    assert(csv[0] === 'name,latitude,longitude,minutes,direction,population,population_weighted_rwi,wealth_coverage,area_km2,population_density,status', csv[0]);
+    assert(csv[0] === 'name,latitude,longitude,minutes,direction,population,population_weighted_rwi,wealth_coverage,area_km2,population_density,household_income_median_rm,household_income_mean_rm,household_spending_mean_rm,est_households,spending_power_rm_month,status', csv[0]);
     const names = csv.slice(1).map(l => l.split(',')[0]); assert(names.slice(0, 10).every(x => x === 'KLCC') && names[10] === 'Broken' && names[29] === 'Mid Valley', 'order');
     assert(csv.slice(1, 11).map(l => l.split(',')[3]).join() === '1,2,3,4,5,6,7,8,9,10', 'minutes order');
     assert(csv[11].includes('failed: invalid coordinates'), 'invalid flagged');
@@ -324,7 +337,7 @@ if (MODE === 'local') {
     assert(new Set(locs).size === locs.length && locs.length === 5, 'unique uncached locations ' + JSON.stringify(locs));
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#batchCsv')]);
     const csv = fs.readFileSync(await dl.path(), 'utf8').trim().split(/\r?\n/);
-    assert(csv[0] === 'name,latitude,longitude,walk_distance_m,population,population_weighted_rwi,wealth_coverage,area_km2,population_density,status', csv[0]);
+    assert(csv[0] === 'name,latitude,longitude,walk_distance_m,population,population_weighted_rwi,wealth_coverage,area_km2,population_density,household_income_median_rm,household_income_mean_rm,household_spending_mean_rm,est_households,spending_power_rm_month,status', csv[0]);
     assert(csv.length === 8 && csv.slice(1).map(l => l.split(',')[0]).join() === 'W1,W2,Bad,W3,W4,W5,W6', 'rows/order');
     assert(csv[3].includes('failed: invalid coordinates'), 'invalid flagged');
     const [g] = await Promise.all([page.waitForEvent('download'), page.click('#batchGeo')]);

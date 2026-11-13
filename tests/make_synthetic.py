@@ -35,7 +35,16 @@ rdf["rwi"] = rng.normal(0.2, 0.5, len(rdf)); rdf["error"] = rng.uniform(0.2, 0.6
 idx, dist = bd.nearest_rwi(lat, lon, rdf)
 rwi_val = rdf.rwi.values[idx].astype(np.float32)
 dist_m = np.minimum(np.ceil(dist), bd.NO_MATCH).astype(np.uint16)
-tiles, nbytes = bd.write_tiles(out, rows, lon, lat, pop, rwi_val, dist_m)
+# synthetic income areas: west / south-east / north-east; cells north of 3.285 have no area
+area = np.where(lon < 101.65, 0, np.where(lat < 3.18, 1, 2)).astype(np.uint16)
+area[lat > 3.285] = 65535
+areas = [
+    {"id": 0, "level": "dun", "state": "Selangor", "name": "N.1 West", "parlimen": "P.1 X", "income_median": 6000.0, "income_mean": 8000.0, "expenditure_mean": 5000.0, "hh_size": 3.5},
+    {"id": 1, "level": "dun", "state": "Selangor", "name": "N.2 South-east", "parlimen": "P.1 X", "income_median": 9000.0, "income_mean": 12000.0, "expenditure_mean": None, "hh_size": 3.2},
+    {"id": 2, "level": "parlimen", "state": "W.P. Kuala Lumpur", "name": "P.9 North-east", "parlimen": "P.9 North-east", "income_median": 11000.0, "income_mean": None, "expenditure_mean": 7000.0, "hh_size": 3.0},
+]
+json.dump({"year": 2024, "areas": areas}, open(os.path.join(out, "areas.json"), "w"))
+tiles, nbytes = bd.write_tiles(out, rows, lon, lat, pop, rwi_val, dist_m, area)
 manifest = {"format": "MCT1", "data_version": "synthetic", "tile_deg": bd.TILE_DEG, "tiles": tiles,
             "population": {"note": "SYNTHETIC TEST DATA"}, "rwi": {"samples": len(rdf)}}
 json.dump(manifest, open(os.path.join(out, "manifest.json"), "w"))
@@ -84,5 +93,20 @@ for name, g in cases.items():
             "population_weighted_rwi": (float((pop[matched] * bf_v[matched]).sum()) / mp) if mp > 0 else None,
             "wealth_coverage": (mp / tot) if tot > 0 else None, "cells": int(m.sum()),
         }
+        # independent income / spending expectation (plain loops over areas)
+        hh_tot = 0.0; acc = {"med": [0.0, 0.0], "mean": [0.0, 0.0], "exp": [0.0, 0.0]}; covpop = 0.0
+        for A in areas:
+            sel = m & (area == A["id"]); pa = float(pop[sel].sum())
+            if pa == 0: continue
+            h = pa / A["hh_size"]; hh_tot += h; covpop += pa
+            for key, field in (("med", "income_median"), ("mean", "income_mean"), ("exp", "expenditure_mean")):
+                if A[field] is not None: acc[key][0] += h; acc[key][1] += h * A[field]
+        expected[f"{name}@{thr}"].update({
+            "est_households": hh_tot if hh_tot > 0 else None,
+            "income_median_hh_avg": acc["med"][1] / acc["med"][0] if acc["med"][0] else None,
+            "income_mean_hh_avg": acc["mean"][1] / acc["mean"][0] if acc["mean"][0] else None,
+            "expenditure_mean_hh_avg": acc["exp"][1] / acc["exp"][0] if acc["exp"][0] else None,
+            "spending_power_rm_month": acc["exp"][1] if acc["exp"][0] else None,
+            "econ_coverage": covpop / tot if tot > 0 else None})
 json.dump({"cases": cases, "expected": expected}, open(os.path.join(out, "expected.json"), "w"))
 print("synthetic tiles:", len(tiles), "cells:", int(lat.size), "rwi samples:", len(rdf))

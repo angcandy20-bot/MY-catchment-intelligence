@@ -20,12 +20,15 @@ const synth = process.argv[2] || '/tmp/synth';
 // ---------- aggregation vs independent expected (synthetic data)
 const manifest = JSON.parse(fs.readFileSync(path.join(synth, 'manifest.json')));
 const { cases, expected } = JSON.parse(fs.readFileSync(path.join(synth, 'expected.json')));
+const synthAreas = JSON.parse(fs.readFileSync(path.join(synth, 'areas.json'))).areas;
 const loadTile = async t => { const b = fs.readFileSync(path.join(synth, t.file)); return parseTile(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)); };
 for (const [name, g] of Object.entries(cases)) {
   for (const thr of [3000, 1000]) {
     await test('synthetic-data', `aggregation ${name} @${thr} m matches independent brute force`, async () => {
-      const got = await aggregateGeometry(g, manifest, loadTile, thr);
+      const got = await aggregateGeometry(g, manifest, loadTile, thr, null, synthAreas);
       const exp = expected[`${name}@${thr}`];
+      for (const k of ['est_households', 'income_median_hh_avg', 'income_mean_hh_avg', 'expenditure_mean_hh_avg', 'spending_power_rm_month', 'econ_coverage'])
+        close(got[k], exp[k], exp[k] == null ? 0 : Math.max(1e-6, Math.abs(exp[k]) * 1e-5), k);
       assert.equal(got.cells, exp.cells, 'cell count');
       close(got.population, exp.population, Math.max(0.01, exp.population * 1e-5), 'population');
       close(got.matched_population, exp.matched_population, Math.max(0.01, exp.matched_population * 1e-4), 'matched pop');
@@ -201,6 +204,13 @@ await test('simulated-api', 'walking batch: one row per building, order kept, wa
   assert.deepEqual(Object.keys(rows[0]), WALK_COLUMNS); assert.equal(columnsFor(job), WALK_COLUMNS);
   assert.equal(rows[0].walk_distance_m, 200); assert.ok(rows[1].status.startsWith('failed: invalid')); assert.equal(rows[1].population, '');
   assert.equal(columnsFor(newJob({ stores })), BATCH_COLUMNS);
+});
+
+await test('unit', 'income/spending: missing area values give "No data", not zero; MCT1 tiles still parse', async () => {
+  const { econStats } = await import('../site/js/core/aggregate.js');
+  const e = econStats(new Map([[0, 100]]), [{ id: 0, hh_size: 4, income_median: null, income_mean: null, expenditure_mean: null, name: 'x', level: 'dun', parlimen: 'p', state: 's' }], 100);
+  assert.equal(e.income_median_hh_avg, null); assert.equal(e.spending_power_rm_month, null); assert.equal(e.est_households, 25);
+  const z = econStats(new Map(), null, 0); assert.equal(z.est_households, null);
 });
 
 const out = process.env.TEST_REPORT;

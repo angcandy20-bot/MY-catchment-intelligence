@@ -5,7 +5,9 @@ Population: polygon (densified, reprojected to the raster CRS) rasterised with G
 (rasterio.features.geometry_mask, all_touched=False), raster values summed excluding NoData / <= 0.
 RWI: nearest sample with scikit-learn BallTree (haversine), threshold 3 km.
 Area: pyproj.Geod (WGS84 ellipsoid).
-Usage: python check_samples.py <population.tif> <rwi.csv|zip> <samples.geojson> <out.json>
+Income/spending: cell centres joined to the full-resolution area polygons with geopandas (independent of the
+pipeline's per-cell index), household-weighted averages recomputed from areas.json values.
+Usage: python check_samples.py <population.tif> <rwi.csv|zip> <samples.geojson> <out.json> [areas_full.geojson areas.json]
 """
 import json, sys, zipfile
 import numpy as np, pandas as pd
@@ -18,6 +20,39 @@ from shapely.ops import transform as stransform
 from sklearn.neighbors import BallTree
 
 pop_path, rwi_path, samples_path, out_path = sys.argv[1:5]
+areas_full = sys.argv[5] if len(sys.argv) > 5 else None
+areas_tab = json.load(open(sys.argv[6]))["areas"] if len(sys.argv) > 6 else None
+if areas_full:
+    import geopandas as gpd
+    AG = gpd.read_file(areas_full)[["id", "geometry"]]
+    AG3857 = AG.to_crs(3857)
+
+def econ_check(lon, lat, vals):
+    if not areas_full or not len(vals):
+        return {}
+    pts = gpd.GeoDataFrame({"k": np.arange(len(vals))}, geometry=gpd.points_from_xy(lon, lat), crs=4326)
+    j = gpd.sjoin(pts, AG, how="left", predicate="within"); j = j[~j.index.duplicated(keep="first")]
+    ids = j["id"].values.astype(float)
+    miss = np.isnan(ids)
+    if miss.any():
+        n = gpd.sjoin_nearest(pts[miss].to_crs(3857), AG3857, how="left", max_distance=1000); n = n[~n.index.duplicated(keep="first")]
+        ids[np.nonzero(miss)[0]] = n["id"].values.astype(float)
+    hh = np.zeros(len(vals)); med = np.full(len(vals), np.nan); mean = np.full(len(vals), np.nan); exp = np.full(len(vals), np.nan)
+    for k, a in enumerate(ids):
+        if np.isnan(a):
+            continue
+        A = areas_tab[int(a)]
+        hh[k] = vals[k] / A["hh_size"]
+        med[k] = np.nan if A["income_median"] is None else A["income_median"]
+        mean[k] = np.nan if A["income_mean"] is None else A["income_mean"]
+        exp[k] = np.nan if A["expenditure_mean"] is None else A["expenditure_mean"]
+    def wavg(x):
+        m = ~np.isnan(x) & (hh > 0)
+        return float((hh[m] * x[m]).sum() / hh[m].sum()) if m.any() else None
+    m = ~np.isnan(exp)
+    return {"est_households": float(hh.sum()) if hh.sum() > 0 else None, "income_median_hh_avg": wavg(med), "income_mean_hh_avg": wavg(mean),
+            "expenditure_mean_hh_avg": wavg(exp), "spending_power_rm_month": float((hh[m] * exp[m]).sum()) if m.any() else None,
+            "econ_coverage": float(vals[~np.isnan(ids)].sum() / vals.sum())}
 THR = 3000.0; R = 6371008.8
 
 if rwi_path.endswith(".zip"):
@@ -63,6 +98,6 @@ for f in json.load(open(samples_path))["features"]:
     area = abs(geod.geometry_area_perimeter(g)[0]) / 1e6
     out.append({"name": f["properties"]["name"], "population": total, "cells": int(len(vals)), "matched_population": mp,
                 "population_weighted_rwi": wsum / mp if mp > 0 else None, "wealth_coverage": mp / total if total > 0 else None,
-                "area_km2_ellipsoid": area, "geometry": f["geometry"]})
+                "area_km2_ellipsoid": area, "geometry": f["geometry"], **econ_check(np.asarray(lon), np.asarray(lat), vals)})
     print(out[-1]["name"], round(total), out[-1]["population_weighted_rwi"], flush=True)
 json.dump(out, open(out_path, "w"), indent=1)
