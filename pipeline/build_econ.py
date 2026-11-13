@@ -197,9 +197,9 @@ def build_econ(work, out, lon, lat, report):
     # ---- outputs
     def num(v):
         return None if pd.isna(v) else float(v)
-    table = [{"id": int(r.id), "level": r.level, "state": r._state, "name": str(r.area_name), "parlimen": str(r.parlimen_name or ""),
-              "income_median": num(r.income_median), "income_mean": num(r.income_mean), "expenditure_mean": num(r.expenditure),
-              "hh_size": round(float(r.hh_size), 4)} for r in areas.itertuples()]
+    table = [{"id": int(r["id"]), "level": r["level"], "state": r["_state"], "name": str(r["area_name"]), "parlimen": str(r["parlimen_name"] or ""),
+              "income_median": num(r["income_median"]), "income_mean": num(r["income_mean"]), "expenditure_mean": num(r["expenditure"]),
+              "hh_size": round(float(r["hh_size"]), 4)} for r in areas.drop(columns="geometry").to_dict("records")]
     json.dump({"year": y1, "expenditure_year": y2, "household_size_year": int(hy.year), "areas": table}, open(os.path.join(out, "areas.json"), "w"), separators=(",", ":"))
     simp = areas[["id", "geometry"]].copy(); simp["geometry"] = simp.geometry.simplify(0.0004, preserve_topology=True)
     simp.to_file(os.path.join(out, "areas.geojson"), driver="GeoJSON", COORDINATE_PRECISION=5)
