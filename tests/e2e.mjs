@@ -127,7 +127,7 @@ await test('real-data', 'KMZ import (zipped KML from Google Earth)', async () =>
   const f = path.join(tmp, 'offices.kmz'); fs.writeFileSync(f, Buffer.concat([lh, name, comp, cd, name, eo]));
   await page.click('[data-tab=catchment]'); await page.setInputFiles('#gjFile', f);
   await page.waitForFunction(() => /KMZ polygons/.test(document.getElementById('importMsg').textContent) && /Saved/.test(document.getElementById('importMsg').textContent), null, { timeout: 60000 });
-  return await page.textContent('#importMsg');
+  const msg = await page.textContent('#importMsg'); await page.click('[data-tab=catchment]'); return msg;
 });
 
 await test('real', 'coordinate search "lat, lon" sets the store point', async () => {
