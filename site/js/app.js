@@ -1,5 +1,5 @@
 import { requestIsochrones, DIRECTIONS, cacheKey, MINUTES, HEIGIT_ISOCHRONES_ENDPOINT, requestWalkIsochrones, walkCacheKey, WALK_MAX_LOCATIONS, HEIGIT_WALK_ENDPOINT } from './core/heigit.js';
-import { parseLatLon, importGeoJSON, parseStoresTable, toCSV, toTSV, toKML, toGeoJSON, fmtNum, fmtPct } from './core/geo.js';
+import { parseLatLon, importGeoJSON, kmlToGeoJSON, parseStoresTable, toCSV, toTSV, toKML, toGeoJSON, fmtNum, fmtPct } from './core/geo.js';
 import { BatchRunner, newJob, jobRows, jobSummary, columnsFor, DIRECTION_VALUE, econFields } from './core/batch.js';
 import { toPolygons } from './core/aggregate.js';
 import { idb } from './idb.js';
@@ -195,21 +195,54 @@ function setWorkGeometry(geometry, name, source) {
   recalcWork();
 }
 $('clearWork').onclick = () => clearPolygon();
+// KMZ = zip containing a .kml (Google Earth). Read the first .kml entry (stored or deflate).
+async function kmzToText(buf) {
+  const dv = new DataView(buf); let eocd = -1;
+  for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 66000); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error('Not a valid KMZ (zip) file');
+  let p = dv.getUint32(eocd + 16, true); const count = dv.getUint16(eocd + 10, true); const dec = new TextDecoder();
+  for (let k = 0; k < count; k++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true), nlen = dv.getUint16(p + 28, true), elen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true), lho = dv.getUint32(p + 42, true);
+    const name = dec.decode(new Uint8Array(buf, p + 46, nlen));
+    if (/\.kml$/i.test(name)) {
+      const start = lho + 30 + dv.getUint16(lho + 26, true) + dv.getUint16(lho + 28, true);
+      const data = new Uint8Array(buf, start, csize);
+      if (method === 0) return dec.decode(data);
+      if (method === 8) return await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+      throw new Error('Unsupported KMZ compression method ' + method);
+    }
+    p += 46 + nlen + elen + clen;
+  }
+  throw new Error('No .kml file found inside the KMZ');
+}
+async function readPolygonFile(f) {
+  const nm = f.name.toLowerCase();
+  if (nm.endsWith('.kmz')) { const k = kmlToGeoJSON(await kmzToText(await f.arrayBuffer())); return { r: importGeoJSON(k.fc), kml: k, fmt: 'KMZ' }; }
+  const text = await f.text();
+  if (nm.endsWith('.kml') || /^\s*(<\?xml|<kml)/i.test(text)) { const k = kmlToGeoJSON(text); return { r: importGeoJSON(k.fc), kml: k, fmt: 'KML' }; }
+  return { r: importGeoJSON(text), kml: null, fmt: 'GeoJSON' };
+}
 $('gjFile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-  const r = importGeoJSON(await f.text());
-  if (!r.features.length) { $('importMsg').textContent = r.errors.join(' '); return; }
+  let r, kml, fmt;
+  try { ({ r, kml, fmt } = await readPolygonFile(f)); } catch (err) { $('importMsg').textContent = 'Could not read ' + f.name + ': ' + err.message; return; }
+  if (kml) r.skipped += kml.skipped;
+  if (!r.features.length) { $('importMsg').textContent = (kml ? `${fmt}: ${kml.placemarks} placemark(s), none with polygons. ` : '') + r.errors.join(' '); return; }
   const holes = r.features.reduce((t, x) => t + x.holes, 0);
   if (r.features.length === 1) {
     setWorkGeometry(r.features[0].geometry, r.features[0].name, 'imported');
-    $('importMsg').textContent = `Imported 1 feature (${r.features[0].geometry.type}, ${holes} hole(s))` + (r.skipped ? `; skipped ${r.skipped} non-polygon feature(s)` : '') + (r.errors.length ? '; ' + r.errors.join(' ') : '');
+    $('importMsg').textContent = `Imported 1 ${fmt} feature “${r.features[0].name}” (${r.features[0].geometry.type}, ${holes} hole(s))` + (r.skipped ? `; skipped ${r.skipped} non-polygon feature(s)` : '') + (r.errors.length ? '; ' + r.errors.join(' ') : '');
   } else {
-    $('importMsg').textContent = `Importing ${r.features.length} features as separate saved catchments…`;
+    $('importMsg').textContent = `Importing ${r.features.length} ${fmt} polygons as separate saved catchments…`;
     const stats = dataReady ? await aggregateMany(r.features.map(x => x.geometry), 'Imported features') : [];
     for (let i = 0; i < r.features.length; i++) await saveCatchment({ name: r.features[i].name, geometry: r.features[i].geometry, stats: stats[i] || null, source: 'imported' });
     setWorkGeometry(r.features[0].geometry, r.features[0].name, 'imported');
-    $('importMsg').textContent = `Saved ${r.features.length} imported features as catchments (${holes} hole(s) in total)` + (r.skipped ? `; skipped ${r.skipped} non-polygon feature(s)` : '') + '. See Saved & compare.';
-    renderSaved();
+    $('importMsg').textContent = `Saved ${r.features.length} ${fmt} polygons as catchments, each with its own statistics (${holes} hole(s) in total)` + (r.skipped ? `; skipped ${r.skipped} non-polygon feature(s)` : '') + '. Opening Saved & compare…';
+    await renderSaved();
+    const ids = new Set(savedCache.slice(-r.features.length).map(c => c.id));
+    document.querySelectorAll('#savedList input[type=checkbox]').forEach(cb => { cb.checked = ids.has(cb.dataset.id); });
+    renderCompare(); showTab('saved');
   }
 };
 $('saveWork').onclick = async () => {
@@ -414,15 +447,16 @@ async function saveCatchment(c) {
     maxDistM: (c.stats && c.stats.maxDistM) || maxDistM() };
   await idb.set('catchments', rec.id, rec); return rec;
 }
-let savedCache = [];
+let savedCache = []; const knownSaved = new Set(); // newly saved catchments start ticked
 async function renderSaved() {
   try { savedCache = (await idb.all('catchments')).sort((a, b) => a.savedAt.localeCompare(b.savedAt)); } catch (e) { savedCache = []; }
   const ticked = new Set([...document.querySelectorAll('#savedList input[type=checkbox]:checked')].map(x => x.dataset.id));
   $('savedList').innerHTML = savedCache.length ? savedCache.map(c => `<div class="saved-item">
-    <input type="checkbox" data-id="${c.id}" ${ticked.has(c.id) || !ticked.size ? 'checked' : ''}>
+    <input type="checkbox" data-id="${c.id}" ${ticked.has(c.id) || !ticked.size || !knownSaved.has(c.id) ? 'checked' : ''}>
     <input type="text" class="nm" data-rename="${c.id}" value="${esc(c.name)}" title="Edit to rename">
     <button class="small" data-open="${c.id}">Open</button><button class="small" data-del="${c.id}">Delete</button></div>`).join('')
     : '<div class="muted">Nothing saved yet.</div>';
+  savedCache.forEach(c => knownSaved.add(c.id));
   $('savedList').querySelectorAll('[data-open]').forEach(b => b.onclick = () => { const c = savedCache.find(x => x.id === b.dataset.open); setWorkGeometry(c.geometry, c.name, c.source); showTab('catchment'); });
   $('savedList').querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { await idb.del('catchments', b.dataset.del); renderSaved(); });
   $('savedList').querySelectorAll('[data-rename]').forEach(inp => inp.onchange = async () => { const c = savedCache.find(x => x.id === inp.dataset.rename); c.name = inp.value.trim() || c.name; await idb.set('catchments', c.id, c); renderCompare(); });

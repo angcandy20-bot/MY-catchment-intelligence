@@ -98,6 +98,38 @@ await test(MODE === 'live' ? 'real' : 'real', 'GeoJSON import (Polygon with hole
   const msg = await page.textContent('#importMsg'); assert(/1 hole/.test(msg), msg);
   const txt = await page.textContent('#workStats'); return msg + ' · ' + txt.replace(/\s+/g, ' ').slice(0, 160);
 });
+const KML2 = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+ <Placemark><name>KML Office KLCC</name><Polygon><outerBoundaryIs><LinearRing><coordinates>101.7071,3.1534,0 101.7161,3.1534,0 101.7161,3.1624,0 101.7071,3.1624,0 101.7071,3.1534,0</coordinates></LinearRing></outerBoundaryIs>
+  <innerBoundaryIs><LinearRing><coordinates>101.710,3.156,0 101.713,3.156,0 101.713,3.159,0 101.710,3.156,0</coordinates></LinearRing></innerBoundaryIs></Polygon></Placemark>
+ <Placemark><name>KML Mid Valley</name><Polygon><outerBoundaryIs><LinearRing><coordinates>101.672,3.113 101.682,3.113 101.682,3.123 101.672,3.123 101.672,3.113</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
+ <Placemark><name>pin</name><Point><coordinates>101.7,3.15</coordinates></Point></Placemark></Document></kml>`;
+await test('real-data', 'KML import: each polygon saved as its own catchment with population, RWI and income; compare table opens', async () => {
+  await page.click('[data-tab=catchment]');
+  const f = path.join(tmp, 'offices.kml'); fs.writeFileSync(f, KML2);
+  await page.setInputFiles('#gjFile', f);
+  await page.waitForFunction(() => document.querySelector('[data-tab=saved]').classList.contains('on'), null, { timeout: 60000 });
+  const msg = await page.textContent('#importMsg'); assert(/Saved 2 KML polygons/.test(msg) && /skipped 1/.test(msg), msg);
+  const cmp = await page.textContent('#cmpTable'); assert(cmp.includes('KML Office KLCC') && cmp.includes('KML Mid Valley'), 'compare table');
+  const rows = await page.locator('#cmpTable tr').count(); assert(rows === 3, 'compare rows ' + rows + ' (only the 2 imported should be ticked)');
+  assert(!/not calculated/.test(cmp) && /RM/.test(cmp), 'stats/income missing: ' + cmp.slice(0, 200));
+  const [d] = await Promise.all([page.waitForEvent('download'), page.click('#cmpCsv')]);
+  const csv = fs.readFileSync(await d.path(), 'utf8'); assert(csv.split(/\r?\n/).filter(Boolean).length === 3 && csv.includes('household_income_median_rm'), 'csv');
+  return msg + ' · CSV: ' + csv.split(/\r?\n/)[1].slice(0, 160);
+});
+await test('real-data', 'KMZ import (zipped KML from Google Earth)', async () => {
+  const zlib = await import('node:zlib');
+  const data = Buffer.from(KML2, 'utf8'), comp = zlib.deflateRawSync(data), name = Buffer.from('doc.kml');
+  const crc = (() => { let c, t = []; for (let n = 0; n < 256; n++) { c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } let x = 0xFFFFFFFF; for (const b of data) x = t[(x ^ b) & 0xFF] ^ (x >>> 8); return (x ^ 0xFFFFFFFF) >>> 0; })();
+  const lh = Buffer.alloc(30); lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4); lh.writeUInt16LE(8, 8); lh.writeUInt32LE(crc, 14); lh.writeUInt32LE(comp.length, 18); lh.writeUInt32LE(data.length, 22); lh.writeUInt16LE(name.length, 26);
+  const cd = Buffer.alloc(46); cd.writeUInt32LE(0x02014b50, 0); cd.writeUInt16LE(20, 4); cd.writeUInt16LE(20, 6); cd.writeUInt16LE(8, 10); cd.writeUInt32LE(crc, 16); cd.writeUInt32LE(comp.length, 20); cd.writeUInt32LE(data.length, 24); cd.writeUInt16LE(name.length, 28); cd.writeUInt32LE(0, 42);
+  const cdOff = lh.length + name.length + comp.length;
+  const eo = Buffer.alloc(22); eo.writeUInt32LE(0x06054b50, 0); eo.writeUInt16LE(1, 8); eo.writeUInt16LE(1, 10); eo.writeUInt32LE(cd.length + name.length, 12); eo.writeUInt32LE(cdOff, 16);
+  const f = path.join(tmp, 'offices.kmz'); fs.writeFileSync(f, Buffer.concat([lh, name, comp, cd, name, eo]));
+  await page.click('[data-tab=catchment]'); await page.setInputFiles('#gjFile', f);
+  await page.waitForFunction(() => /KMZ polygons/.test(document.getElementById('importMsg').textContent) && /Saved/.test(document.getElementById('importMsg').textContent), null, { timeout: 60000 });
+  return await page.textContent('#importMsg');
+});
+
 await test('real', 'coordinate search "lat, lon" sets the store point', async () => {
   await page.fill('#coordIn', '3.1579, 101.7116'); await page.click('#coordGo');
   const t = await page.textContent('#isoPoint'); assert(t.includes('3.157900, 101.711600'), t); return t;

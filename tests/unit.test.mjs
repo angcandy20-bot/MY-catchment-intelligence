@@ -5,7 +5,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { parseTile, aggregateGeometry, polygonsAreaM2 } from '../site/js/core/aggregate.js';
 import { requestIsochrones, buildIsochroneBody, HEIGIT_ISOCHRONES_ENDPOINT, parseContours, requestWalkIsochrones, buildWalkBody } from '../site/js/core/heigit.js';
-import { parseLatLon, parseStoresTable, importGeoJSON, toCSV, toKML, toTSV } from '../site/js/core/geo.js';
+import { parseLatLon, parseStoresTable, importGeoJSON, toCSV, toKML, toTSV, kmlToGeoJSON } from '../site/js/core/geo.js';
 import { BatchRunner, newJob, jobRows, BATCH_COLUMNS, WALK_COLUMNS, columnsFor } from '../site/js/core/batch.js';
 
 const results = [];
@@ -177,6 +177,25 @@ await test('simulated-api', 'batch: per-store API failure marks 10 failed rows a
   const job = newJob({ stores: stores.slice(2), direction: 'to', maxDistM: 3000 });
   await new BatchRunner(job, { getContours: async s => { if (s.name === 'C') { const e = new Error('no route'); e.kind = 'bad_request'; throw e; } return { contours: contoursFor(), fromCache: true }; }, aggregate: fakeAgg, save, sleep: async () => {}, minIntervalMs: 0 }).run();
   const rows = jobRows(job); assert.equal(rows.filter(r => r.status.startsWith('failed')).length, 10); assert.equal(rows[11].status, 'ok'); assert.equal(rows[10].status, 'ok (no RWI match within threshold)');
+});
+
+await test('unit', 'KML import: names (CDATA), holes, MultiGeometry, ExtendedData, kml: prefixes, points skipped, round-trip of our own KML export', async () => {
+  const kml = `<?xml version="1.0"?><kml:kml xmlns:kml="http://www.opengis.net/kml/2.2"><kml:Document>
+   <kml:Placemark><kml:name><![CDATA[Office A & B]]></kml:name><kml:ExtendedData><kml:Data name="code"><kml:value>X1</kml:value></kml:Data></kml:ExtendedData>
+    <kml:Polygon><kml:outerBoundaryIs><kml:LinearRing><kml:coordinates>101.70,3.15,0 101.72,3.15,0 101.72,3.17,0 101.70,3.17,0 101.70,3.15,0</kml:coordinates></kml:LinearRing></kml:outerBoundaryIs>
+     <kml:innerBoundaryIs><kml:LinearRing><kml:coordinates>101.705,3.155 101.71,3.155 101.71,3.16 101.705,3.155</kml:coordinates></kml:LinearRing></kml:innerBoundaryIs></kml:Polygon></kml:Placemark>
+   <kml:Placemark><kml:name>Two parts</kml:name><kml:MultiGeometry>
+    <kml:Polygon><kml:outerBoundaryIs><kml:LinearRing><kml:coordinates>101.6,3.1 101.61,3.1 101.61,3.11 101.6,3.1</kml:coordinates></kml:LinearRing></kml:outerBoundaryIs></kml:Polygon>
+    <kml:Polygon><kml:outerBoundaryIs><kml:LinearRing><kml:coordinates>101.8,3.2 101.81,3.2 101.81,3.21</kml:coordinates></kml:LinearRing></kml:outerBoundaryIs></kml:Polygon></kml:MultiGeometry></kml:Placemark>
+   <kml:Placemark><kml:name>Just a pin</kml:name><kml:Point><kml:coordinates>101.7,3.1</kml:coordinates></kml:Point></kml:Placemark>
+  </kml:Document></kml:kml>`;
+  const k = kmlToGeoJSON(kml); const r = importGeoJSON(k.fc);
+  assert.equal(k.placemarks, 3); assert.equal(k.skipped, 1); assert.equal(r.features.length, 2);
+  assert.equal(r.features[0].name, 'Office A & B'); assert.equal(r.features[0].holes, 1); assert.equal(k.fc.features[0].properties.code, 'X1');
+  assert.equal(r.features[1].geometry.type, 'MultiPolygon'); assert.deepEqual(r.features[1].geometry.coordinates[1][0].at(-1), [101.8, 3.2]); // unclosed ring closed
+  const back = kmlToGeoJSON(toKML(r.features.map(f => ({ geometry: f.geometry, properties: { name: f.name } }))));
+  assert.equal(back.fc.features.length, 2); assert.deepEqual(back.fc.features[0].geometry.coordinates, r.features[0].geometry.coordinates);
+  assert.throws(() => kmlToGeoJSON('{"type":"FeatureCollection"}'));
 });
 
 // ---------- walking distance (SIMULATED API)

@@ -77,10 +77,11 @@
      <h3>Catchment polygon</h3>
      <p class="muted">Draw with the polygon / rectangle tools on the map (top left). Use <b>Edit</b> to move vertices, <b>Cut</b> to make holes, the map's eraser tool to delete one shape, or <b>✕ Clear polygon</b> on the map to remove the whole polygon (<b>⟲ Clear map</b> removes everything shown). Several shapes form one MultiPolygon catchment.</p>
      <div class="row">
-      <label class="btn small">Import GeoJSON<input id="gjFile" type="file" accept=".geojson,.json,application/geo+json" hidden></label>
+      <label class="btn small">Import GeoJSON / KML / KMZ<input id="gjFile" type="file" accept=".geojson,.json,.kml,.kmz,application/geo+json,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz" hidden></label>
       <button id="clearWork" class="small">Clear polygon</button>
      </div>
      <div id="importMsg" class="muted"></div>
+     <p class="muted">A file with several polygons (e.g. a KML from Google Earth or Google My Maps) is saved as one catchment per polygon, each with its own population, wealth and income figures, and opened in <b>Saved &amp; compare</b> for comparison and CSV / GeoJSON / KML export. Holes (inner boundaries) and multi-part shapes are supported; points and lines are skipped.</p>
     </div>
     <div class="card">
      <h3>Selected polygon statistics</h3>

@@ -102,6 +102,40 @@ export function importGeoJSON(text) {
   return { features: out, skipped, errors };
 }
 
+// ---- KML import (Google Earth / Google My Maps / QGIS) ----
+// Reads every <Placemark> with <Polygon> (including inside <MultiGeometry>), outer + inner boundaries (holes).
+// Points and lines are skipped. Returns a GeoJSON FeatureCollection; validate it with importGeoJSON().
+const xmlUnesc = s => String(s).replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).replace(/&amp;/g, '&');
+function kmlCoords(txt) {
+  return String(txt).trim().split(/\s+/).filter(Boolean).map(t => { const [x, y] = t.split(','); return [Number(x), Number(y)]; });
+}
+export function kmlToGeoJSON(text) {
+  const src = String(text || '').replace(/<(\/?)[A-Za-z_][\w.-]*:/g, '<$1'); // drop namespace prefixes (kml:, gx:)
+  if (!/<kml[\s>]/i.test(src) && !/<Placemark[\s>]/i.test(src)) throw new Error('Not a KML file (no <kml> or <Placemark> element).');
+  const features = []; let skipped = 0, n = 0;
+  for (const pm of src.match(/<Placemark[\s\S]*?<\/Placemark>/g) || []) {
+    n++;
+    const nm = pm.match(/<name>([\s\S]*?)<\/name>/);
+    const name = nm ? xmlUnesc(nm[1]).trim() : '';
+    const polys = [];
+    for (const pg of pm.match(/<Polygon[\s\S]*?<\/Polygon>/g) || []) {
+      const outer = pg.match(/<outerBoundaryIs>[\s\S]*?<coordinates>([\s\S]*?)<\/coordinates>/);
+      if (!outer) continue;
+      const rings = [kmlCoords(outer[1])];
+      for (const m of pg.matchAll(/<innerBoundaryIs>[\s\S]*?<coordinates>([\s\S]*?)<\/coordinates>/g)) rings.push(kmlCoords(m[1]));
+      polys.push(rings);
+    }
+    if (!polys.length) { skipped++; continue; }
+    const props = { name: name || 'Placemark ' + n };
+    for (const m of pm.matchAll(/<Data\s+name="([^"]*)"[^>]*>[\s\S]*?<value>([\s\S]*?)<\/value>/g)) props[xmlUnesc(m[1])] = xmlUnesc(m[2]).trim();
+    for (const m of pm.matchAll(/<SimpleData\s+name="([^"]*)"[^>]*>([\s\S]*?)<\/SimpleData>/g)) props[xmlUnesc(m[1])] = xmlUnesc(m[2]).trim();
+    features.push({ type: 'Feature', properties: props,
+      geometry: polys.length === 1 ? { type: 'Polygon', coordinates: polys[0] } : { type: 'MultiPolygon', coordinates: polys } });
+  }
+  return { fc: { type: 'FeatureCollection', features }, skipped, placemarks: n };
+}
+
 // ---- KML export ----
 const xmlEsc = s => String(s ?? '').replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));
 function kmlRing(r) { return '<LinearRing><coordinates>' + r.map(c => c[0] + ',' + c[1] + ',0').join(' ') + '</coordinates></LinearRing>'; }
