@@ -1,8 +1,11 @@
 // Batch store analysis engine. DOM-free; all I/O is injected so it can be tested with mocks.
 import { MINUTES } from './heigit.js';
 
+export const DEMO_COLUMNS = ['pct_malay', 'pct_other_bumiputera', 'pct_chinese', 'pct_indian', 'pct_other_citizen', 'pct_non_citizen',
+  'pct_age_0_14', 'pct_age_15_24', 'pct_age_25_34', 'pct_age_35_44', 'pct_age_45_54', 'pct_age_55_64', 'pct_age_65_plus',
+  'working_age_pop_15_64', 'est_labour_force', 'est_employed_residents', 'unemployment_rate'];
 export const ECON_COLUMNS = ['household_income_median_rm', 'household_income_mean_rm', 'household_spending_mean_rm',
-  'est_households', 'spending_power_rm_month'];
+  'est_households', 'spending_power_rm_month', ...DEMO_COLUMNS];
 export const BATCH_COLUMNS = ['name', 'latitude', 'longitude', 'minutes', 'direction', 'population',
   'population_weighted_rwi', 'wealth_coverage', 'area_km2', 'population_density', ...ECON_COLUMNS, 'status'];
 
@@ -41,6 +44,14 @@ export function econFields(stats) {
     household_spending_mean_rm: v(stats && stats.expenditure_mean_hh_avg),
     est_households: v(stats && stats.est_households),
     spending_power_rm_month: v(stats && stats.spending_power_rm_month),
+    pct_malay: v(stats && stats.pct_bumi_malay, 4), pct_other_bumiputera: v(stats && stats.pct_bumi_other, 4),
+    pct_chinese: v(stats && stats.pct_chinese, 4), pct_indian: v(stats && stats.pct_indian, 4),
+    pct_other_citizen: v(stats && stats.pct_other_citizen, 4), pct_non_citizen: v(stats && stats.pct_other_noncitizen, 4),
+    pct_age_0_14: v(stats && stats.pct_age_0_14, 4), pct_age_15_24: v(stats && stats.pct_age_15_24, 4), pct_age_25_34: v(stats && stats.pct_age_25_34, 4),
+    pct_age_35_44: v(stats && stats.pct_age_35_44, 4), pct_age_45_54: v(stats && stats.pct_age_45_54, 4), pct_age_55_64: v(stats && stats.pct_age_55_64, 4),
+    pct_age_65_plus: v(stats && stats.pct_age_65_plus, 4),
+    working_age_pop_15_64: v(stats && stats.working_age_pop), est_labour_force: v(stats && stats.labour_force),
+    est_employed_residents: v(stats && stats.employed), unemployment_rate: v(stats && stats.unemployment_rate, 4),
   };
 }
 export function walkRow(store, walkM, stats, status) {

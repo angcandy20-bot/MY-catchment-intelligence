@@ -67,3 +67,8 @@ ul.method{padding-left:18px;margin:4px 0}ul.method li{margin:4px 0}
 .stat.econ{background:#ecfdf3}.stats .wide{grid-column:1/-1}
 .econctl select{margin-top:3px;font:inherit;font-size:12px}
 .econctl #econLegend{margin-top:4px}
+.demo.stat{background:#f4f3ff}
+.demo .mix{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:4px 0;background:#eaecf0}
+.demo .mix span{display:block;height:100%}
+.demo .mixlbl{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;color:#475467}
+.demo .mixlbl i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px;vertical-align:-1px}

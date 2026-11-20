@@ -11,14 +11,15 @@
 //      float32  pop[nCells]          population COUNT of the cell (people per cell, not density)
 //      float32  rwi[nCells]          RWI of the nearest valid RWI sample (NaN if none)
 //      uint16   distM[nCells]        geodesic distance to that sample in metres (65535 = >= 65.5 km / none)
-//      uint16   area[nCells]         (MCT2 only) index into areas.json (DOSM HIES DUN / FT parliament), 65535 = none
+//      uint16   area[nCells]         (MCT2+) index into areas.json (DOSM HIES DUN / FT parliament), 65535 = none
+//      uint16   district[nCells]     (MCT3) index into districts.json (DOSM census-based district population), 65535 = none
 
 export const NO_MATCH_DIST = 65535;
 
 export function parseTile(buf) {
   const dv = new DataView(buf);
   const magic = String.fromCharCode(dv.getUint8(0), dv.getUint8(1), dv.getUint8(2), dv.getUint8(3));
-  if (magic !== 'MCT1' && magic !== 'MCT2') throw new Error('Bad tile magic: ' + magic);
+  if (!['MCT1', 'MCT2', 'MCT3'].includes(magic)) throw new Error('Bad tile magic: ' + magic);
   const nRows = dv.getUint32(4, true);
   const n = dv.getUint32(8, true);
   let o = 12;
@@ -28,10 +29,11 @@ export function parseTile(buf) {
   const pop = new Float32Array(buf, o, n); o += 4 * n;
   const rwi = new Float32Array(buf, o, n); o += 4 * n;
   const dist = new Uint16Array(buf, o, n); o += 2 * n;
-  let area = null;
-  if (magic === 'MCT2') { area = new Uint16Array(buf, o, n); o += 2 * n; }
+  let area = null, district = null;
+  if (magic !== 'MCT1') { area = new Uint16Array(buf, o, n); o += 2 * n; }
+  if (magic === 'MCT3') { district = new Uint16Array(buf, o, n); o += 2 * n; }
   if (o > buf.byteLength) throw new Error('Truncated tile');
-  return { nRows, n, rowLat, rowStart, lon, pop, rwi, dist, area };
+  return { nRows, n, rowLat, rowStart, lon, pop, rwi, dist, area, district };
 }
 
 // Normalise any GeoJSON input to an array of polygons, each an array of rings [[lon,lat],...].
@@ -91,14 +93,14 @@ function lowerBound(arr, lo, hi, x) { // first index in [lo,hi) with arr[i] >= x
 
 export const NO_AREA = 65535;
 export function emptyAcc() {
-  return { population: 0, matchedPop: 0, rwiPopSum: 0, cells: 0, matchedCells: 0, areaPop: new Map() };
+  return { population: 0, matchedPop: 0, rwiPopSum: 0, cells: 0, matchedCells: 0, areaPop: new Map(), distPop: new Map(), pairPop: new Map() };
 }
 
 // Add cells of one tile whose centres fall inside the prepared polygons.
 // A cell inside several polygons of a MultiPolygon is counted once.
 export function accumulateTile(acc, tile, prepared, maxDistM) {
-  const { nRows, rowLat, rowStart, lon, pop, rwi, dist, area } = tile;
-  const ap = acc.areaPop;
+  const { nRows, rowLat, rowStart, lon, pop, rwi, dist, area, district } = tile;
+  const ap = acc.areaPop, dp = acc.distPop, pp = acc.pairPop;
   const ivals = [];
   for (let r = 0; r < nRows; r++) {
     const y = rowLat[r];
@@ -118,6 +120,10 @@ export function accumulateTile(acc, tile, prepared, maxDistM) {
           acc.matchedPop += p; acc.rwiPopSum += p * v; acc.matchedCells++;
         }
         if (area) { const a = area[i]; if (a !== NO_AREA) ap.set(a, (ap.get(a) || 0) + p); }
+        if (district) {
+          const d = district[i];
+          if (d !== NO_AREA) { dp.set(d, (dp.get(d) || 0) + p); if (area && area[i] !== NO_AREA) { const k = area[i] * 65536 + d; pp.set(k, (pp.get(k) || 0) + p); } }
+        }
       }
     }
   }
@@ -162,10 +168,46 @@ export function econStats(areaPop, areas, totalPop) {
   return out;
 }
 
-export function finalize(acc, areaM2, areas) {
+// Race mix and age groups from district shares (census-based), weighted by the catchment's own population cells.
+// Working population: working-age (15-64) from district age shares x labour-force participation and unemployment
+// of the DUN / FT parliament containing each cell (DOSM Labour Force Survey).
+export const ETH_KEYS = ['bumi_malay', 'bumi_other', 'chinese', 'indian', 'other_citizen', 'other_noncitizen'];
+export const AGE_KEYS = ['0_14', '15_24', '25_34', '35_44', '45_54', '55_64', '65_plus'];
+export function demoStats(distPop, pairPop, areas, districts, totalPop) {
+  const out = { demo_coverage: null, working_age_pop: null, labour_force: null, employed: null, unemployment_rate: null, labour_coverage: null };
+  for (const k of ETH_KEYS) out['pct_' + k] = null;
+  for (const k of AGE_KEYS) out['pct_age_' + k] = null;
+  if (!districts || !distPop || !distPop.size) return out;
+  let cov = 0, wa = 0; const eth = {}, ethW = {}, age = {};
+  for (const [d, p] of distPop) {
+    const D = districts[d]; if (!D || !D.age) continue;
+    cov += p; wa += p * D.wa;
+    for (const k of AGE_KEYS) age[k] = (age[k] || 0) + p * D.age[k];
+    for (const k of ETH_KEYS) if (D.eth && D.eth[k] != null) { eth[k] = (eth[k] || 0) + p * D.eth[k]; ethW[k] = (ethW[k] || 0) + p; }
+  }
+  if (cov > 0) {
+    out.demo_coverage = totalPop > 0 ? cov / totalPop : null;
+    out.working_age_pop = wa;
+    for (const k of AGE_KEYS) out['pct_age_' + k] = age[k] / cov;
+    for (const k of ETH_KEYS) out['pct_' + k] = ethW[k] ? eth[k] / ethW[k] : null;
+  }
+  if (areas && pairPop && pairPop.size) {
+    let lf = 0, emp = 0, waL = 0;
+    for (const [key, p] of pairPop) {
+      const A = areas[Math.floor(key / 65536)], D = districts[key % 65536];
+      if (!A || !D || !D.age || A.p_rate == null || A.u_rate == null) continue;
+      const w = p * D.wa; waL += w; lf += w * A.p_rate; emp += w * A.p_rate * (1 - A.u_rate);
+    }
+    if (waL > 0) { out.labour_force = lf; out.employed = emp; out.unemployment_rate = lf > 0 ? 1 - emp / lf : null; out.labour_coverage = wa > 0 ? waL / wa : null; }
+  }
+  return out;
+}
+
+export function finalize(acc, areaM2, areas, districts) {
   const area_km2 = areaM2 / 1e6;
   return {
     ...econStats(acc.areaPop, areas, acc.population),
+    ...demoStats(acc.distPop, acc.pairPop, areas, districts, acc.population),
     population: acc.population,
     matched_population: acc.matchedPop,
     population_weighted_rwi: acc.matchedPop > 0 ? acc.rwiPopSum / acc.matchedPop : null, // null => "No data"
@@ -205,7 +247,7 @@ export function tilesForBBox(manifest, bb) {
 }
 
 // Full aggregation given a tile loader (async id -> parsed tile).
-export async function aggregateGeometry(geojson, manifest, loadTile, maxDistM, onProgress, areas) {
+export async function aggregateGeometry(geojson, manifest, loadTile, maxDistM, onProgress, areas, districts) {
   const polys = toPolygons(geojson).filter(p => p && p.length && p[0].length >= 3);
   if (!polys.length) throw new Error('No polygon geometry');
   const prepared = preparePolygons(polys);
@@ -218,5 +260,5 @@ export async function aggregateGeometry(geojson, manifest, loadTile, maxDistM, o
     accumulateTile(acc, tile, prepared, maxDistM);
     i++; if (onProgress) onProgress(i, tiles.length);
   }
-  return { ...finalize(acc, polygonsAreaM2(polys), areas), tiles_used: tiles.length };
+  return { ...finalize(acc, polygonsAreaM2(polys), areas, districts), tiles_used: tiles.length };
 }

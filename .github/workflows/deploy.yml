@@ -42,7 +42,9 @@ jobs:
           RWI=$(python -c "import json;print(json.load(open('work/paths.json'))['rwi'])")
           AF=$(python -c "import json;print(json.load(open('work/paths.json'))['areas_full'])")
           AJ=$(python -c "import json;print(json.load(open('work/paths.json'))['areas_json'])")
-          python pipeline/check_samples.py "$POP" "$RWI" tests/real_samples.geojson work/py_check.json "$AF" "$AJ"
+          DF=$(python -c "import json;print(json.load(open('work/paths.json'))['districts_full'])")
+          DJ=$(python -c "import json;print(json.load(open('work/paths.json'))['districts_json'])")
+          python pipeline/check_samples.py "$POP" "$RWI" tests/real_samples.geojson work/py_check.json "$AF" "$AJ" "$DF" "$DJ"
 
       - name: Compare dashboard calculation with independent check
         run: node tests/check_real.mjs site/data work/py_check.json work/check_real.json

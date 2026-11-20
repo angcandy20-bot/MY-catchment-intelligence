@@ -21,13 +21,15 @@ const synth = process.argv[2] || '/tmp/synth';
 const manifest = JSON.parse(fs.readFileSync(path.join(synth, 'manifest.json')));
 const { cases, expected } = JSON.parse(fs.readFileSync(path.join(synth, 'expected.json')));
 const synthAreas = JSON.parse(fs.readFileSync(path.join(synth, 'areas.json'))).areas;
+const synthDistricts = JSON.parse(fs.readFileSync(path.join(synth, 'districts.json'))).districts;
 const loadTile = async t => { const b = fs.readFileSync(path.join(synth, t.file)); return parseTile(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)); };
 for (const [name, g] of Object.entries(cases)) {
   for (const thr of [3000, 1000]) {
     await test('synthetic-data', `aggregation ${name} @${thr} m matches independent brute force`, async () => {
-      const got = await aggregateGeometry(g, manifest, loadTile, thr, null, synthAreas);
+      const got = await aggregateGeometry(g, manifest, loadTile, thr, null, synthAreas, synthDistricts);
       const exp = expected[`${name}@${thr}`];
-      for (const k of ['est_households', 'income_median_hh_avg', 'income_mean_hh_avg', 'expenditure_mean_hh_avg', 'spending_power_rm_month', 'econ_coverage'])
+      for (const k of ['est_households', 'income_median_hh_avg', 'income_mean_hh_avg', 'expenditure_mean_hh_avg', 'spending_power_rm_month', 'econ_coverage',
+        'working_age_pop', 'labour_force', 'employed', 'unemployment_rate', 'pct_bumi_malay', 'pct_chinese', 'pct_indian', 'pct_other_noncitizen', 'pct_age_0_14', 'pct_age_25_34', 'pct_age_65_plus'])
         close(got[k], exp[k], exp[k] == null ? 0 : Math.max(1e-6, Math.abs(exp[k]) * 1e-5), k);
       assert.equal(got.cells, exp.cells, 'cell count');
       close(got.population, exp.population, Math.max(0.01, exp.population * 1e-5), 'population');

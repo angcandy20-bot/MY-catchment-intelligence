@@ -22,6 +22,8 @@ from sklearn.neighbors import BallTree
 pop_path, rwi_path, samples_path, out_path = sys.argv[1:5]
 areas_full = sys.argv[5] if len(sys.argv) > 5 else None
 areas_tab = json.load(open(sys.argv[6]))["areas"] if len(sys.argv) > 6 else None
+dist_full = sys.argv[7] if len(sys.argv) > 7 else None
+dist_tab = json.load(open(sys.argv[8]))["districts"] if len(sys.argv) > 8 else None
 if areas_full:
     import geopandas as gpd
     AG = gpd.read_file(areas_full)[["id", "geometry"]]
@@ -50,7 +52,30 @@ def econ_check(lon, lat, vals):
         m = ~np.isnan(x) & (hh > 0)
         return float((hh[m] * x[m]).sum() / hh[m].sum()) if m.any() else None
     m = ~np.isnan(exp)
-    return {"est_households": float(hh.sum()) if hh.sum() > 0 else None, "income_median_hh_avg": wavg(med), "income_mean_hh_avg": wavg(mean),
+    demo = {}
+    if dist_full:
+        DG = gpd.read_file(dist_full)[["id", "geometry"]]
+        jd = gpd.sjoin(pts, DG, how="left", predicate="within"); jd = jd[~jd.index.duplicated(keep="first")]
+        dids = jd["id"].values.astype(float); dm = np.isnan(dids)
+        if dm.any():
+            n2 = gpd.sjoin_nearest(pts[dm].to_crs(3857), DG.to_crs(3857), how="left", max_distance=1000); n2 = n2[~n2.index.duplicated(keep="first")]
+            dids[np.nonzero(dm)[0]] = n2["id"].values.astype(float)
+        cov = 0.0; wa = 0.0; lf = 0.0; emp = 0.0; age = {}; eth = {}
+        for k in range(len(vals)):
+            if np.isnan(dids[k]): continue
+            D = dist_tab[int(dids[k])]
+            if "age" not in D: continue
+            p = vals[k]; cov += p; wa += p * D["wa"]
+            for a_, v in D["age"].items(): age[a_] = age.get(a_, 0) + p * v
+            for e_, v in D["eth"].items(): eth[e_] = eth.get(e_, 0) + p * (v or 0)
+            if not np.isnan(ids[k]):
+                A = areas_tab[int(ids[k])]
+                if A.get("p_rate") is not None and A.get("u_rate") is not None:
+                    lf += p * D["wa"] * A["p_rate"]; emp += p * D["wa"] * A["p_rate"] * (1 - A["u_rate"])
+        if cov > 0:
+            demo = {"working_age_pop": wa, "labour_force": lf or None, "employed": emp or None, "pct_chinese": eth.get("chinese", 0) / cov,
+                    "pct_bumi_malay": eth.get("bumi_malay", 0) / cov, "pct_age_25_34": age.get("25_34", 0) / cov}
+    return {**demo, "est_households": float(hh.sum()) if hh.sum() > 0 else None, "income_median_hh_avg": wavg(med), "income_mean_hh_avg": wavg(mean),
             "expenditure_mean_hh_avg": wavg(exp), "spending_power_rm_month": float((hh[m] * exp[m]).sum()) if m.any() else None,
             "econ_coverage": float(vals[~np.isnan(ids)].sum() / vals.sum())}
 THR = 3000.0; R = 6371008.8

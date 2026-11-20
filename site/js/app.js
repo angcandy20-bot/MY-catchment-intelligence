@@ -79,7 +79,7 @@ function drawingActive() {
 }
 
 // ------------------------------------------------------------------ data + worker
-let manifest = null, dataReady = false, econ = null; // econ = areas.json (DOSM HIES)
+let manifest = null, dataReady = false, econ = null, demo = null; // econ = areas.json (DOSM HIES + LFS), demo = districts.json (census-based)
 const worker = new Worker(`js/worker.js?v=${BUILD}`, { type: 'module' });
 let wid = 0; const pending = new Map();
 worker.onmessage = e => {
@@ -109,7 +109,8 @@ async function loadData() {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     manifest = await r.json();
     try { const ra = await fetch('data/areas.json?v=' + manifest.data_version); if (ra.ok) econ = await ra.json(); } catch (e) { econ = null; }
-    await wcall({ type: 'init', manifest, base: new URL('data/', location.href).href, areas: econ ? econ.areas : null });
+    try { const rd = await fetch('data/districts.json?v=' + manifest.data_version); if (rd.ok) demo = await rd.json(); } catch (e) { demo = null; }
+    await wcall({ type: 'init', manifest, base: new URL('data/', location.href).href, areas: econ ? econ.areas : null, districts: demo ? demo.districts : null });
     dataReady = true;
     const p = manifest.population;
     setStatus('stAgg', `Ready · ${fmtNum(p.cells)} population cells (${p.epoch || '?'} ${p.release || ''}), ${fmtNum(manifest.rwi.samples)} RWI samples`, 'ok');
@@ -138,6 +139,7 @@ function renderDataInfo() {
    <a href="${esc(w.url)}" target="_blank" rel="noopener">HDX dataset</a></p>
    <p><b>Matching</b>: ${esc(m.method || '')}. Share of national population with an RWI sample within 3 km: ${fmtPct(m.population_share_within_3km)}.</p>
    ${econ ? `<p><b>Household income &amp; spending</b>: DOSM Household Income &amp; Expenditure Survey (HIES) ${esc(econ.year)} by state-assembly constituency (DUN), with the 3 Federal Territories by parliamentary constituency · ${fmtNum(econ.areas.length)} areas · household size by state from DOSM household and population counts (${esc(econ.household_size_year)}). Survey estimates, CC BY 4.0. <a href="https://open.dosm.gov.my/data-catalogue/hh_income_dun" target="_blank" rel="noopener">OpenDOSM</a></p>` : '<p>Household income &amp; spending data not available in this build.</p>'}
+   ${demo ? `<p><b>Race mix &amp; age groups</b>: DOSM population by administrative district, ${esc(demo.year)} (MyCensus 2020 base with DOSM intercensal estimates), ${fmtNum(demo.districts.length)} districts. <b>Working population</b>: DOSM Labour Force Survey ${esc(econ && econ.lfs_year || '')} by DUN / FT parliament (participation and unemployment rates). <a href="https://open.dosm.gov.my/data-catalogue/population_district" target="_blank" rel="noopener">OpenDOSM</a></p>` : ''}
    <p>Data version ${esc(manifest.data_version)} · built ${esc(manifest.built_at)} · <a href="data/data_report.json" target="_blank">full data verification report</a></p>`;
 }
 function renderBuildInfo(b) {
@@ -160,8 +162,26 @@ function statsHTML(st, maxD) {
 }
 const rm = v => (v === null || v === undefined || !Number.isFinite(v) ? 'No data' : 'RM ' + Math.round(v).toLocaleString('en-MY'));
 const rmBig = v => (v === null || v === undefined || !Number.isFinite(v) ? 'No data' : v >= 1e6 ? 'RM ' + (v / 1e6).toFixed(2) + ' M' : rm(v));
+const pc = v => (v === null || v === undefined || !Number.isFinite(v) ? 'No data' : (v * 100).toFixed(1) + '%');
+function demoHTML(st) {
+  if (!demo) return '';
+  const bar = (items) => `<div class="mix">${items.filter(([, v]) => v > 0).map(([l, v, c]) => `<span style="width:${(v * 100).toFixed(2)}%;background:${c}" title="${l} ${pc(v)}"></span>`).join('')}</div>` +
+    `<div class="mixlbl">${items.map(([l, v, c]) => `<span><i style="background:${c}"></i>${l} ${pc(v)}</span>`).join('')}</div>`;
+  const eth = [['Malay', st.pct_bumi_malay, '#0f62fe'], ['Other Bumiputera', st.pct_bumi_other, '#6ea6ff'], ['Chinese', st.pct_chinese, '#d92d20'],
+    ['Indian', st.pct_indian, '#f79009'], ['Other citizens', st.pct_other_citizen, '#7a5af8'], ['Non-citizens', st.pct_other_noncitizen, '#98a2b3']];
+  const age = [['0–14', st.pct_age_0_14, '#d1e9ff'], ['15–24', st.pct_age_15_24, '#84caff'], ['25–34', st.pct_age_25_34, '#2e90fa'], ['35–44', st.pct_age_35_44, '#1570ef'],
+    ['45–54', st.pct_age_45_54, '#175cd3'], ['55–64', st.pct_age_55_64, '#1849a9'], ['65+', st.pct_age_65_plus, '#0b2d6b']];
+  return `
+   <div class="wide demo"><b>Race mix</b>${st.pct_chinese == null ? ' <span class="nodata">No data</span>' : bar(eth)}</div>
+   <div class="wide demo"><b>Age groups</b>${st.pct_age_0_14 == null ? ' <span class="nodata">No data</span>' : bar(age)}</div>
+   <div class="stat demo"><b>${fmtNum(st.working_age_pop)}</b><span>Working-age residents (15–64)</span></div>
+   <div class="stat demo"><b>${fmtNum(st.employed)}</b><span>Employed residents (est.)</span></div>
+   <div class="stat demo"><b>${fmtNum(st.labour_force)}</b><span>Labour force (est.)</span></div>
+   <div class="stat demo"><b>${pc(st.unemployment_rate)}</b><span>Unemployment rate</span></div>
+   <div class="muted wide">Race mix and age: DOSM population by district (${esc(demo.year)}, MyCensus 2020-based), weighted by this catchment's population cells (coverage ${fmtPct(st.demo_coverage)}). Working population: working-age residents × labour-force participation × (1 − unemployment) of each DUN / FT parliament, DOSM Labour Force Survey ${esc(econ && econ.lfs_year || '')}. Counts people who <b>live</b> here, not people who work here.</div>`;
+}
 function econHTML(st) {
-  if (!econ) return '';
+  if (!econ) return demoHTML(st);
   const nd = v => v === null || v === undefined;
   return `
    <div class="stat econ"><b class="${nd(st.income_median_hh_avg) ? 'nodata' : ''}">${rm(st.income_median_hh_avg)}</b><span>Median household income / month*</span></div>
@@ -169,7 +189,7 @@ function econHTML(st) {
    <div class="stat econ"><b class="${nd(st.expenditure_mean_hh_avg) ? 'nodata' : ''}">${rm(st.expenditure_mean_hh_avg)}</b><span>Mean household spending / month*</span></div>
    <div class="stat econ"><b class="${nd(st.est_households) ? 'nodata' : ''}">${fmtNum(st.est_households)}</b><span>Estimated households</span></div>
    <div class="stat econ wide"><b class="${nd(st.spending_power_rm_month) ? 'nodata' : ''}">${rmBig(st.spending_power_rm_month)}</b><span>Estimated household spending power / month (households × mean spending)</span></div>
-   <div class="muted wide">* HIES ${esc(econ.year)} area averages (DUN / FT parliament), weighted by this catchment's estimated households across ${st.econ_areas || 0} area(s); main area: ${esc(st.econ_main_area || '—')}. Coverage ${fmtPct(st.econ_coverage)}. Survey estimates, not counts of these exact buildings.</div>`;
+   <div class="muted wide">* HIES ${esc(econ.year)} area averages (DUN / FT parliament), weighted by this catchment's estimated households across ${st.econ_areas || 0} area(s); main area: ${esc(st.econ_main_area || '—')}. Coverage ${fmtPct(st.econ_coverage)}. Survey estimates, not counts of these exact buildings.</div>` + demoHTML(st);
 }
 
 // ------------------------------------------------------------------ working polygon
@@ -389,8 +409,8 @@ function renderIso() {
   $('isoSaveSel').textContent = walk ? 'Save walking area as catchment' : 'Save selected minute as catchment';
   if (walk) {
     const s = iso.stats ? iso.stats[0] : null;
-    $('isoTable').innerHTML = `<tr><th>Walking distance</th><th>Population</th><th>Pop-wt RWI</th><th>Coverage</th><th>Area km²</th><th>Density /km²</th><th>Median HH income*</th><th>Spending power / mo</th></tr>` +
-      `<tr class="sel"><td>≤ ${iso.walkM} m</td><td>${s ? fmtNum(s.population) : '…'}</td><td>${s ? (s.population_weighted_rwi === null ? 'No data' : s.population_weighted_rwi.toFixed(3)) : '…'}</td><td>${s ? fmtPct(s.wealth_coverage) : '…'}</td><td>${s ? fmtNum(s.area_km2, 3) : '…'}</td><td>${s ? fmtNum(s.population_density) : '…'}</td><td>${s ? rm(s.income_median_hh_avg) : '…'}</td><td>${s ? rmBig(s.spending_power_rm_month) : '…'}</td></tr>`;
+    $('isoTable').innerHTML = `<tr><th>Walking distance</th><th>Population</th><th>Pop-wt RWI</th><th>Coverage</th><th>Area km²</th><th>Density /km²</th><th>Median HH income*</th><th>Spending power / mo</th><th>Employed residents</th></tr>` +
+      `<tr class="sel"><td>≤ ${iso.walkM} m</td><td>${s ? fmtNum(s.population) : '…'}</td><td>${s ? (s.population_weighted_rwi === null ? 'No data' : s.population_weighted_rwi.toFixed(3)) : '…'}</td><td>${s ? fmtPct(s.wealth_coverage) : '…'}</td><td>${s ? fmtNum(s.area_km2, 3) : '…'}</td><td>${s ? fmtNum(s.population_density) : '…'}</td><td>${s ? rm(s.income_median_hh_avg) : '…'}</td><td>${s ? rmBig(s.spending_power_rm_month) : '…'}</td><td>${s ? fmtNum(s.employed) : '…'}</td></tr>`;
     drawIso();
     try { map.fitBounds(L.geoJSON(iso.contours[0].geometry).getBounds().pad(0.4)); } catch (e) { /* */ }
     return;
@@ -399,8 +419,8 @@ function renderIso() {
   $('minBar').innerHTML = `<button data-m="all" class="${iso.sel === 'all' ? 'on' : ''}">All 10</button>` + MINUTES.map(m => `<button data-m="${m}" class="${iso.sel === m ? 'on' : ''}">${m}</button>`).join('');
   $('minBar').querySelectorAll('button').forEach(b => b.onclick = () => { iso.sel = b.dataset.m === 'all' ? 'all' : Number(b.dataset.m); renderIso(); });
   const rows = iso.contours.map((c, i) => ({ c, s: iso.stats ? iso.stats[i] : null }));
-  $('isoTable').innerHTML = `<tr><th>Minutes</th><th>Population</th><th>Pop-wt RWI</th><th>Coverage</th><th>Area km²</th><th>Density /km²</th><th>Median HH income*</th><th>Spending power / mo</th></tr>` +
-    rows.map(({ c, s }) => `<tr data-m="${c.minutes}" class="${iso.sel === c.minutes ? 'sel' : ''}"><td>≤ ${c.minutes}</td><td>${s ? fmtNum(s.population) : '…'}</td><td>${s ? (s.population_weighted_rwi === null ? 'No data' : s.population_weighted_rwi.toFixed(3)) : '…'}</td><td>${s ? fmtPct(s.wealth_coverage) : '…'}</td><td>${s ? fmtNum(s.area_km2, 2) : '…'}</td><td>${s ? fmtNum(s.population_density) : '…'}</td><td>${s ? rm(s.income_median_hh_avg) : '…'}</td><td>${s ? rmBig(s.spending_power_rm_month) : '…'}</td></tr>`).join('');
+  $('isoTable').innerHTML = `<tr><th>Minutes</th><th>Population</th><th>Pop-wt RWI</th><th>Coverage</th><th>Area km²</th><th>Density /km²</th><th>Median HH income*</th><th>Spending power / mo</th><th>Employed residents</th></tr>` +
+    rows.map(({ c, s }) => `<tr data-m="${c.minutes}" class="${iso.sel === c.minutes ? 'sel' : ''}"><td>≤ ${c.minutes}</td><td>${s ? fmtNum(s.population) : '…'}</td><td>${s ? (s.population_weighted_rwi === null ? 'No data' : s.population_weighted_rwi.toFixed(3)) : '…'}</td><td>${s ? fmtPct(s.wealth_coverage) : '…'}</td><td>${s ? fmtNum(s.area_km2, 2) : '…'}</td><td>${s ? fmtNum(s.population_density) : '…'}</td><td>${s ? rm(s.income_median_hh_avg) : '…'}</td><td>${s ? rmBig(s.spending_power_rm_month) : '…'}</td><td>${s ? fmtNum(s.employed) : '…'}</td></tr>`).join('');
   $('isoTable').querySelectorAll('tr[data-m]').forEach(tr => tr.onclick = () => { iso.sel = Number(tr.dataset.m); renderIso(); });
   drawIso();
   if (iso.contours.length) { try { map.fitBounds(L.geoJSON(iso.contours[9].geometry).getBounds().pad(0.1)); } catch (e) { /* */ } }
@@ -474,8 +494,8 @@ function savedRow(c) {
 }
 function renderCompare() {
   const list = tickedSaved();
-  $('cmpTable').innerHTML = list.length ? `<tr><th>Name</th><th>Population</th><th>Pop-wt RWI</th><th>Coverage</th><th>Area km²</th><th>Density</th><th>Median HH income*</th><th>Mean HH spending*</th><th>Spending power / mo</th><th>RWI ≤ km</th></tr>` +
-    list.map(c => { const s = c.stats; return `<tr><td>${esc(c.name)}</td><td>${s ? fmtNum(s.population) : 'not calculated'}</td><td>${s ? (s.population_weighted_rwi === null ? 'No data' : s.population_weighted_rwi.toFixed(3)) : ''}</td><td>${s ? fmtPct(s.wealth_coverage) : ''}</td><td>${s ? fmtNum(s.area_km2, 2) : ''}</td><td>${s ? fmtNum(s.population_density) : ''}</td><td>${s ? rm(s.income_median_hh_avg) : ''}</td><td>${s ? rm(s.expenditure_mean_hh_avg) : ''}</td><td>${s ? rmBig(s.spending_power_rm_month) : ''}</td><td>${(c.maxDistM / 1000).toFixed(1)}</td></tr>`; }).join('')
+  $('cmpTable').innerHTML = list.length ? `<tr><th>Name</th><th>Population</th><th>Pop-wt RWI</th><th>Coverage</th><th>Area km²</th><th>Density</th><th>Median HH income*</th><th>Mean HH spending*</th><th>Spending power / mo</th><th>Working-age</th><th>Employed</th><th>Malay / Chinese / Indian</th><th>RWI ≤ km</th></tr>` +
+    list.map(c => { const s = c.stats; return `<tr><td>${esc(c.name)}</td><td>${s ? fmtNum(s.population) : 'not calculated'}</td><td>${s ? (s.population_weighted_rwi === null ? 'No data' : s.population_weighted_rwi.toFixed(3)) : ''}</td><td>${s ? fmtPct(s.wealth_coverage) : ''}</td><td>${s ? fmtNum(s.area_km2, 2) : ''}</td><td>${s ? fmtNum(s.population_density) : ''}</td><td>${s ? rm(s.income_median_hh_avg) : ''}</td><td>${s ? rm(s.expenditure_mean_hh_avg) : ''}</td><td>${s ? rmBig(s.spending_power_rm_month) : ''}</td><td>${s ? fmtNum(s.working_age_pop) : ''}</td><td>${s ? fmtNum(s.employed) : ''}</td><td>${s && s.pct_chinese != null ? pc(s.pct_bumi_malay) + ' / ' + pc(s.pct_chinese) + ' / ' + pc(s.pct_indian) : ''}</td><td>${(c.maxDistM / 1000).toFixed(1)}</td></tr>`; }).join('')
     : '<tr><td class="muted">Tick saved catchments to compare.</td></tr>';
 }
 const savedFeatures = () => tickedSaved().map(c => ({ geometry: c.geometry, properties: savedRow(c) }));
@@ -666,4 +686,4 @@ econCtl.addTo(map);
 })();
 
 // test hook (no secrets exposed)
-window.__mci = { BUILD, getEcon: () => econ, showEconLayer, hasEconLayer: () => !!econLayer, endpoint: HEIGIT_ISOCHRONES_ENDPOINT, walkEndpoint: HEIGIT_WALK_ENDPOINT, aggregateMany, setWorkGeometry, getState: () => ({ dataReady, iso, job, workStats, point, workParts: workGroup.getLayers().length, isoLayers: isoGroup.getLayers().length, batchLayers: batchGroup.getLayers().length }), hasKey: () => !!apiKey };
+window.__mci = { BUILD, getEcon: () => econ, getDemo: () => demo, showEconLayer, hasEconLayer: () => !!econLayer, endpoint: HEIGIT_ISOCHRONES_ENDPOINT, walkEndpoint: HEIGIT_WALK_ENDPOINT, aggregateMany, setWorkGeometry, getState: () => ({ dataReady, iso, job, workStats, point, workParts: workGroup.getLayers().length, isoLayers: isoGroup.getLayers().length, batchLayers: batchGroup.getLayers().length }), hasKey: () => !!apiKey };

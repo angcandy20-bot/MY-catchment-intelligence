@@ -230,13 +230,15 @@ def nearest_rwi(lat, lon, rwi_df):
 
 
 # ---------------------------------------------------------------- tiles
-def write_tiles(out_dir, rows, lon, lat, pop, rwi_val, dist_m, area=None):
+def write_tiles(out_dir, rows, lon, lat, pop, rwi_val, dist_m, area=None, district=None):
     os.makedirs(os.path.join(out_dir, "tiles"), exist_ok=True)
     ix = np.floor(lon / TILE_DEG).astype(np.int32); iy = np.floor(lat / TILE_DEG).astype(np.int32)
     if area is None:
         area = np.full(len(lon), 65535, dtype=np.uint16)
+    if district is None:
+        district = np.full(len(lon), 65535, dtype=np.uint16)
     order = np.lexsort((lon, rows, iy, ix))
-    ix, iy, rows, lon, lat, pop, rwi_val, dist_m, area = (a[order] for a in (ix, iy, rows, lon, lat, pop, rwi_val, dist_m, area))
+    ix, iy, rows, lon, lat, pop, rwi_val, dist_m, area, district = (a[order] for a in (ix, iy, rows, lon, lat, pop, rwi_val, dist_m, area, district))
     key = ix.astype(np.int64) * 100000 + iy
     bounds = np.r_[0, np.nonzero(np.diff(key))[0] + 1, len(key)]
     tiles = []; total_bytes = 0
@@ -248,11 +250,11 @@ def write_tiles(out_dir, rows, lon, lat, pop, rwi_val, dist_m, area=None):
         n = b1 - b0
         tid = f"{int(ix[b0])}_{int(iy[b0])}"
         buf = io.BytesIO()
-        buf.write(b"MCT2"); buf.write(np.array([len(row_lat), n], dtype="<u4").tobytes())
+        buf.write(b"MCT3"); buf.write(np.array([len(row_lat), n], dtype="<u4").tobytes())
         buf.write(row_lat.astype("<f4").tobytes()); buf.write(row_start.astype("<u4").tobytes())
         buf.write(lon[b0:b1].astype("<f4").tobytes()); buf.write(pop[b0:b1].astype("<f4").tobytes())
         buf.write(rwi_val[b0:b1].astype("<f4").tobytes()); buf.write(dist_m[b0:b1].astype("<u2").tobytes())
-        buf.write(area[b0:b1].astype("<u2").tobytes())
+        buf.write(area[b0:b1].astype("<u2").tobytes()); buf.write(district[b0:b1].astype("<u2").tobytes())
         data = buf.getvalue()
         with open(os.path.join(out_dir, "tiles", tid + ".bin"), "wb") as f:
             f.write(data)
@@ -319,11 +321,11 @@ def main():
 
     # ---- household income & spending areas (DOSM HIES)
     from build_econ import build_econ
-    area_idx, econ = build_econ(a.work, a.out, lon, lat, report)
+    area_idx, district_idx, econ = build_econ(a.work, a.out, lon, lat, report)
 
     # ---- tiles
-    tiles, nbytes = write_tiles(a.out, rows, lon, lat, pop, rwi_val, dist_m, area_idx)
-    data_version = hashlib.sha1(json.dumps([t["id"] + str(t["n"]) + str(t["pop"]) for t in tiles] + [open(os.path.join(a.out, "areas.json")).read()]).encode()).hexdigest()[:10]
+    tiles, nbytes = write_tiles(a.out, rows, lon, lat, pop, rwi_val, dist_m, area_idx, district_idx)
+    data_version = hashlib.sha1(json.dumps([t["id"] + str(t["n"]) + str(t["pop"]) for t in tiles] + [open(os.path.join(a.out, "areas.json")).read(), open(os.path.join(a.out, "districts.json")).read()]).encode()).hexdigest()[:10]
     rwi_out = {"fields": ["lat", "lon", "rwi", "error"],
                "lat": [round(x, 5) for x in rdf.latitude.tolist()], "lon": [round(x, 5) for x in rdf.longitude.tolist()],
                "rwi": [round(x, 4) for x in rdf.rwi.tolist()],
@@ -331,7 +333,7 @@ def main():
     with open(os.path.join(a.out, "rwi.json"), "w") as f:
         json.dump(rwi_out, f, separators=(",", ":"))
     manifest = {
-        "format": "MCT2", "econ": econ, "data_version": data_version, "built_at": report["generated_at"], "tile_deg": TILE_DEG,
+        "format": "MCT3", "econ": econ, "data_version": data_version, "built_at": report["generated_at"], "tile_deg": TILE_DEG,
         "population": {
             "dataset": "GHS-POP (JRC Global Human Settlement Layer) via HDX mys-ghsl",
             "resource": res.get("name"), "selection": note, "epoch": report["population"]["epoch"], "release": report["population"]["release"],
@@ -351,7 +353,7 @@ def main():
         json.dump(manifest, f, separators=(",", ":"), default=str)
     report["output"] = {"tiles": len(tiles), "bytes": nbytes, "data_version": data_version}
     with open(os.path.join(a.work, "paths.json"), "w") as f:
-        json.dump({"population": pop_path, "rwi": rfn, "areas_full": os.path.join(a.work, "areas_full.geojson"), "areas_json": os.path.join(a.out, "areas.json")}, f)
+        json.dump({"population": pop_path, "rwi": rfn, "areas_full": os.path.join(a.work, "areas_full.geojson"), "areas_json": os.path.join(a.out, "areas.json"), "districts_full": os.path.join(a.work, "districts_full.geojson"), "districts_json": os.path.join(a.out, "districts.json")}, f)
     with open(os.path.join(a.out, "data_report.json"), "w") as f:
         json.dump(report, f, indent=1, default=str)
     log("done:", len(tiles), "tiles,", round(nbytes / 1e6, 1), "MB; population total", round(pinfo["population_total"]))

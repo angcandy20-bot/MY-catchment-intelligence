@@ -39,12 +39,19 @@ dist_m = np.minimum(np.ceil(dist), bd.NO_MATCH).astype(np.uint16)
 area = np.where(lon < 101.65, 0, np.where(lat < 3.18, 1, 2)).astype(np.uint16)
 area[lat > 3.285] = 65535
 areas = [
-    {"id": 0, "level": "dun", "state": "Selangor", "name": "N.1 West", "parlimen": "P.1 X", "income_median": 6000.0, "income_mean": 8000.0, "expenditure_mean": 5000.0, "hh_size": 3.5},
-    {"id": 1, "level": "dun", "state": "Selangor", "name": "N.2 South-east", "parlimen": "P.1 X", "income_median": 9000.0, "income_mean": 12000.0, "expenditure_mean": None, "hh_size": 3.2},
-    {"id": 2, "level": "parlimen", "state": "W.P. Kuala Lumpur", "name": "P.9 North-east", "parlimen": "P.9 North-east", "income_median": 11000.0, "income_mean": None, "expenditure_mean": 7000.0, "hh_size": 3.0},
+    {"id": 0, "level": "dun", "state": "Selangor", "name": "N.1 West", "parlimen": "P.1 X", "income_median": 6000.0, "income_mean": 8000.0, "expenditure_mean": 5000.0, "hh_size": 3.5, "p_rate": 0.70, "u_rate": 0.03},
+    {"id": 1, "level": "dun", "state": "Selangor", "name": "N.2 South-east", "parlimen": "P.1 X", "income_median": 9000.0, "income_mean": 12000.0, "expenditure_mean": None, "hh_size": 3.2, "p_rate": 0.75, "u_rate": 0.025},
+    {"id": 2, "level": "parlimen", "state": "W.P. Kuala Lumpur", "name": "P.9 North-east", "parlimen": "P.9 North-east", "income_median": 11000.0, "income_mean": None, "expenditure_mean": 7000.0, "hh_size": 3.0, "p_rate": None, "u_rate": None},
 ]
+district = np.where(lat < 3.17, 0, 1).astype(np.uint16); district[lon > 101.79] = 65535
+AGEK = ["0_14", "15_24", "25_34", "35_44", "45_54", "55_64", "65_plus"]; ETHK = ["bumi_malay", "bumi_other", "chinese", "indian", "other_citizen", "other_noncitizen"]
+def mk(i, a, e):
+    age = dict(zip(AGEK, a)); return {"id": i, "state": "Selangor", "name": f"D{i}", "year": 2025, "age": age, "eth": dict(zip(ETHK, e)), "wa": sum(a[1:6])}
+districts = [mk(0, [0.20, 0.15, 0.20, 0.15, 0.12, 0.10, 0.08], [0.5, 0.05, 0.3, 0.1, 0.01, 0.04]),
+             mk(1, [0.15, 0.18, 0.25, 0.17, 0.10, 0.08, 0.07], [0.3, 0.02, 0.45, 0.15, 0.02, 0.06])]
+json.dump({"year": 2025, "districts": districts}, open(os.path.join(out, "districts.json"), "w"))
 json.dump({"year": 2024, "areas": areas}, open(os.path.join(out, "areas.json"), "w"))
-tiles, nbytes = bd.write_tiles(out, rows, lon, lat, pop, rwi_val, dist_m, area)
+tiles, nbytes = bd.write_tiles(out, rows, lon, lat, pop, rwi_val, dist_m, area, district)
 manifest = {"format": "MCT1", "data_version": "synthetic", "tile_deg": bd.TILE_DEG, "tiles": tiles,
             "population": {"note": "SYNTHETIC TEST DATA"}, "rwi": {"samples": len(rdf)}}
 json.dump(manifest, open(os.path.join(out, "manifest.json"), "w"))
@@ -108,5 +115,22 @@ for name, g in cases.items():
             "expenditure_mean_hh_avg": acc["exp"][1] / acc["exp"][0] if acc["exp"][0] else None,
             "spending_power_rm_month": acc["exp"][1] if acc["exp"][0] else None,
             "econ_coverage": covpop / tot if tot > 0 else None})
+        # independent demographics expectation
+        e = expected[f"{name}@{thr}"]; dcov = 0.0; agg = {}; wa = 0.0; lf = 0.0; emp = 0.0; waL = 0.0
+        for D in districts:
+            seld = m & (district == D["id"]); pd_ = float(pop[seld].sum())
+            if pd_ == 0: continue
+            dcov += pd_; wa += pd_ * D["wa"]
+            for k in AGEK: agg["age_" + k] = agg.get("age_" + k, 0) + pd_ * D["age"][k]
+            for k in ETHK: agg[k] = agg.get(k, 0) + pd_ * D["eth"][k]
+            for A in areas:
+                if A["p_rate"] is None: continue
+                pp = float(pop[seld & (area == A["id"])].sum()); w = pp * D["wa"]
+                waL += w; lf += w * A["p_rate"]; emp += w * A["p_rate"] * (1 - A["u_rate"])
+        e["working_age_pop"] = wa if dcov > 0 else None
+        for k in AGEK: e["pct_age_" + k] = agg["age_" + k] / dcov if dcov > 0 else None
+        for k in ETHK: e["pct_" + k] = agg[k] / dcov if dcov > 0 else None
+        e["labour_force"] = lf if waL > 0 else None; e["employed"] = emp if waL > 0 else None
+        e["unemployment_rate"] = (1 - emp / lf) if waL > 0 and lf > 0 else None
 json.dump({"cases": cases, "expected": expected}, open(os.path.join(out, "expected.json"), "w"))
 print("synthetic tiles:", len(tiles), "cells:", int(lat.size), "rwi samples:", len(rdf))
